@@ -1,0 +1,25 @@
+services:
+  app:
+    build: .
+    container_name: laporan
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+    networks:
+      - laporan-network
+
+  redis:
+    image: redis:7
+    container_name: laporan-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - laporan-network
+
+networks:
+  laporan-network:
+    driver: bridge
+
+volumes:
+  db-data:
