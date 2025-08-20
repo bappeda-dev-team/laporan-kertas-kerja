@@ -18,9 +18,9 @@ public class RencanaKinerjaService {
     @Value("${external.rekin.base-url}")
     private String rekinBaseUrl;
 
-    public Map<String, Object> getRencanaKinerja(String nip, String tahun) {
+    public Map<String, Object> getRencanaKinerja(String kodeOpd, String tahun) {
         String token = accessTokenService.getAccessToken();
-        String url = String.format("%s/get_rencana_kinerja/pegawai/%s?tahun=%s", rekinBaseUrl, nip, tahun);
+        String url = String.format("%s/api_internal/rencana_kinerja/findall?kode_opd=%s&tahun=%s", rekinBaseUrl, kodeOpd, tahun);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
@@ -28,9 +28,19 @@ public class RencanaKinerjaService {
         return httpClient.get(url, headers, Map.class);
     }
 
-    public Map<String, Object> getDetailRencanaKinerja(String idManrisk) {
+    public Map<String, Object> getDetailRencanaKinerja(String idRekin) {
         String token = accessTokenService.getAccessToken();
-        String url = String.format("%s/detail-rencana_kinerja/%s", rekinBaseUrl, idManrisk);
+        String url = String.format("%s/detail-rencana_kinerja/%s", rekinBaseUrl, idRekin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+
+        return httpClient.get(url, headers, Map.class);
+    }
+
+    public Map<String, Object> getAllRencanaKinerjaAtasan(String idRekin) {
+        String token = accessTokenService.getAccessToken();
+        String url = String.format("%s/rekin/atasan/%s", rekinBaseUrl, idRekin);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);

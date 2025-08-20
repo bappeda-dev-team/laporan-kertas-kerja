@@ -1,3 +1,92 @@
 spring:
   application:
     name: laporankertaskerja
+  docker:
+    compose:
+      enabled: false
+      readiness:
+        timeout: 5m
+        tcp:
+          connect-timeout: 10s
+          read-timeout: 10s
+  datasource:
+    username: majapahit
+    password: Madiun@123
+    url: jdbc:postgresql://localhost:5432/laporan-kertas-kerja
+    hikari:
+      connection-timeout: 2000
+      maximum-pool-size: 5
+  flyway:
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    url: jdbc:postgresql://localhost:5432/laporan-kertas-kerja
+  security:
+    user:
+      name: webproglaporan
+      password: admin123
+  jpa:
+    # Show SQL statements
+    show-sql: true
+    # Hibernate specific properties
+    properties:
+      hibernate:
+        # Format SQL for better readability
+        format_sql: true
+        # Use field access instead of property access
+        access:
+          strategy: field
+        # Disable new ID generator mappings (optional)
+        use-new-id-generator-mappings: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8080
+  tomcat:
+    allow-encoded-slashes: true
+  servlet:
+    context-path: /laporan/api
+external:
+  rekin:
+    base-url: https://api-ekak.zeabur.app
+
+logging:
+  level:
+    root: warn
+    org:
+      hibernate:
+        SQL: DEBUG
+        type:
+          descriptor:
+            sql:
+              BasicBinder: TRACE
+        transaction: DEBUG
+        orm:
+          jdbc:
+            bind: trace
+      springdoc: DEBUG
+      springframework:
+        web: DEBUG
+        security: DEBUG
+      flywaydb: INFO
+    io:
+      swagger: DEBUG
+    cc:
+      kertaskerja:
+        manrisk_fraud: INFO
+        aop: DEBUG
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+    disable-swagger-default-url: true
+  override-with-generic-response: false
+  show-actuator: false

@@ -11,16 +11,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class LaporanPerjanjianKerjaDTO {
+public class LaporanPerjanjianKinerjaDTO {
 
     @JsonProperty("id_rencana_kinerja")
     private String idRencanaKinerja;
-
-    @JsonProperty("id_pohon")
-    private Integer idPohon;
-
-    @JsonProperty("nama_pohon")
-    private String namaPohon;
 
     @JsonProperty("nama_rencana_kinerja")
     private String namaRencanaKinerja;
@@ -33,8 +27,8 @@ public class LaporanPerjanjianKerjaDTO {
     @JsonProperty("operasional_daerah")
     private OperasionalDaerahDTO operasionalDaerah;
 
-    @JsonProperty("pegawai_id")
-    private String pegawaiId;
+    @JsonProperty("nip")
+    private String nip;
 
     @JsonProperty("nama_pegawai")
     private String namaPegawai;
@@ -42,6 +36,7 @@ public class LaporanPerjanjianKerjaDTO {
     private List<IndikatorDTO> indikator;
 
     @Data
+    @Builder
     public static class OperasionalDaerahDTO {
         @JsonProperty("kode_opd")
         private String kodeOpd;
@@ -51,6 +46,7 @@ public class LaporanPerjanjianKerjaDTO {
     }
 
     @Data
+    @Builder
     public static class IndikatorDTO {
         @JsonProperty("id_indikator")
         private String idIndikator;
@@ -59,12 +55,10 @@ public class LaporanPerjanjianKerjaDTO {
         private String namaIndikator;
 
         private List<TargetDTO> targets;
-
-        @JsonProperty("manual_ik_exist")
-        private boolean manualIkExist;
     }
 
     @Data
+    @Builder
     public static class TargetDTO {
         @JsonProperty("id_target")
         private String idTarget;
