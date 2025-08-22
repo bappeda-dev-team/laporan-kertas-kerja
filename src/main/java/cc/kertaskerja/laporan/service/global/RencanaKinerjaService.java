@@ -18,7 +18,7 @@ public class RencanaKinerjaService {
     @Value("${external.rekin.base-url}")
     private String rekinBaseUrl;
 
-    public Map<String, Object> getRencanaKinerja(String kodeOpd, String tahun) {
+    public Map<String, Object> getRencanaKinerjaOPD(String kodeOpd, String tahun) {
         String token = accessTokenService.getAccessToken();
         String url = String.format("%s/api_internal/rencana_kinerja/findall?kode_opd=%s&tahun=%s", rekinBaseUrl, kodeOpd, tahun);
 
