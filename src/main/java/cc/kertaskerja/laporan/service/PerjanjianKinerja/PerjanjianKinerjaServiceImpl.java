@@ -9,6 +9,7 @@ import cc.kertaskerja.laporan.enums.StatusEnum;
 import cc.kertaskerja.laporan.exception.ResourceNotFoundException;
 import cc.kertaskerja.laporan.repository.RencanaKinerjaAtasanRepository;
 import cc.kertaskerja.laporan.repository.VerifikatorRepository;
+import cc.kertaskerja.laporan.service.external.EncryptService;
 import cc.kertaskerja.laporan.service.global.RencanaKinerjaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     private final VerifikatorRepository verifikatorRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RencanaKinerjaService rencanaKinerjaService;
+    private final EncryptService encryptService;
 
     @Override
     public List<RencanaKinerjaResDTO> findAllRencanaKinerja(String kodeOpd, String tahun) {
@@ -72,7 +74,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 verifikatorDTO = RencanaKinerjaResDTO.VerifikatorDTO.builder()
                       .kode_opd(verifikator.getKodeOpd())
                       .nama_opd(verifikator.getNamaOpd())
-                      .nip(verifikator.getNip())
+                      .nip(encryptService.encrypt(verifikator.getNip()))
                       .nama_atasan(verifikator.getNamaAtasan())
                       .nip_atasan(verifikator.getNipAtasan())
                       .level_pegawai(verifikator.getLevelPegawai())
@@ -125,7 +127,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
             RencanaKinerjaResDTO dto = RencanaKinerjaResDTO.builder()
                   .kode_opd((String) opd.get("kode_opd"))
                   .nama_opd((String) opd.get("nama_opd"))
-                  .nip(nip)
+                  .nip(encryptService.encrypt(nip))
                   .nama((String) firstRekin.get("nama_pegawai"))
                   .verifikator(verifikatorDTO)
                   .rencana_kinerja(rencanaKinerjaDetails)
@@ -178,5 +180,4 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
         return rekinAtasanRepository.save(rekinAtasan);
     }
-
 }
