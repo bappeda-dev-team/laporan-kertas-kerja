@@ -50,7 +50,7 @@ server:
     context-path: /laporan/api
 external:
   rekin:
-    base-url: https://api-ekak.zeabur.app
+    base-url: /api/v1/perencanaan
 
 logging:
   level:
@@ -89,4 +89,4 @@ springdoc:
     tryItOutEnabled: true
     disable-swagger-default-url: true
   override-with-generic-response: false
-  show-actuator: false
+  show-actuator: true
