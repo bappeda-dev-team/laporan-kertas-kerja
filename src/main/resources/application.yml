@@ -50,7 +50,7 @@ server:
     context-path: /laporan/api
 external:
   rekin:
-    base-url: /api/v1/perencanaan
+    base-url: https://api-ekak.zeabur.app
 
 logging:
   level:
