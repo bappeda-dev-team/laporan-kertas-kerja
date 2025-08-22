@@ -1,10 +1,12 @@
 package cc.kertaskerja.laporan.controller;
 
 import cc.kertaskerja.laporan.dto.ApiResponse;
-import cc.kertaskerja.laporan.dto.LaporanPerjanjianKinerjaDTO;
-import cc.kertaskerja.laporan.dto.PerjanjianKinerjaReqDTO;
-import cc.kertaskerja.laporan.dto.RencanaKinerjaAtasanDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanReqDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaResDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.VerifikatorReqDTO;
 import cc.kertaskerja.laporan.entity.PerjanjianKinerja;
+import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
+import cc.kertaskerja.laporan.entity.Verifikator;
 import cc.kertaskerja.laporan.service.PerjanjianKinerja.PerjanjianKinerjaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,49 +27,85 @@ public class PerjanjianKinerjaController {
 
     private final PerjanjianKinerjaService pkService;
 
-    @GetMapping("/get-detail/{kodeOpd}/{tahun}")
-    @Operation(summary = "Ambil satu data laporan perjanjian kerja berdasarkan ID Rencana Kinerja")
-    public ResponseEntity<ApiResponse<LaporanPerjanjianKinerjaDTO>> getByIdRekin(@PathVariable String kodeOpd,
-                                                                               @PathVariable String tahun) {
-        LaporanPerjanjianKinerjaDTO dto = pkService.findOnePK(kodeOpd, tahun);
-        ApiResponse<LaporanPerjanjianKinerjaDTO> response = ApiResponse.success(dto, "Retrieved 1 data successfully");
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/rencana-kinerja-atasan/{idRekin}")
-    @Operation(summary = "Menampilkan semua data rencana kinerja atasan berdasarkan id rencana kinerja pegawai")
-    public ResponseEntity<ApiResponse<List<RencanaKinerjaAtasanDTO>>> findAllRekinAtasan(@PathVariable String idRekin) {
-        List<RencanaKinerjaAtasanDTO> result = pkService.findAllRekinAtasan(idRekin);
+    @GetMapping("/get-all-rekin/{kodeOpd}/{tahun}")
+    @Operation(summary = "Menampilkan semua data rencana kinerja by OPD")
+    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(@PathVariable String kodeOpd,
+                                                                                         @PathVariable String tahun) {
+        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(kodeOpd, tahun);
 
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 
+    @PostMapping("/verifikator")
+    @Operation(summary = "Masukkan data atasan / verifikator")
+    public ResponseEntity<ApiResponse<?>> saveVerifikator(@Valid @RequestBody VerifikatorReqDTO reqDTO,
+                                                          BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            List<String> errorMessages = bindingResult.getFieldErrors().stream()
+                  .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                  .toList();
+
+            ApiResponse<List<String>> errorResponse = ApiResponse.<List<String>>builder()
+                  .success(false)
+                  .statusCode(400)
+                  .message("Validation failed")
+                  .errors(errorMessages)
+                  .timestamp(LocalDateTime.now())
+                  .build();
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+
+        Verifikator saved = pkService.verification(reqDTO);
+
+        return ResponseEntity.ok(ApiResponse.created(saved));
+    }
+
     @PostMapping
     @Operation(summary = "Hubungkan rencana kinerja pegawai dengan atasan")
-    public ResponseEntity<ApiResponse<?>> savePK(@Valid @RequestBody PerjanjianKinerjaReqDTO reqDTO,
+    public ResponseEntity<ApiResponse<?>> savePK(@Valid @RequestBody RencanaKinerjaAtasanReqDTO reqDTO,
                                                  BindingResult bindingResult) {
 
         if (bindingResult.hasErrors()) {
             List<String> errorMessages = bindingResult.getFieldErrors().stream()
-                    .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                    .toList();
+                  .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                  .toList();
 
             ApiResponse<List<String>> errorResponse = ApiResponse.<List<String>>builder()
-                    .success(false)
-                    .statusCode(400)
-                    .message("Validation failed")
-                    .errors(errorMessages)
-                    .timestamp(LocalDateTime.now())
-                    .build();
+                  .success(false)
+                  .statusCode(400)
+                  .message("Validation failed")
+                  .errors(errorMessages)
+                  .timestamp(LocalDateTime.now())
+                  .build();
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
-        PerjanjianKinerja saved = pkService.savePK(reqDTO);
+        RencanaKinerjaAtasan saved = pkService.savePK(reqDTO);
 
         return ResponseEntity.ok(ApiResponse.created(saved));
     }
 }
+
+
+//{
+//      "nama":"BAGUS SIMUNTANG, SH, M.Hum",
+//      "nip":"19980407202140001",
+//      "level_pegawai":6,
+//      "id_rencana_kinerja":"REKIN-PEG-2025-70059",
+//      "nama_rencana_kinerja":"Meningkatkan Keselarasan antar dokumen perencanaan",
+//      "id_rencana_kinerja_bawahan":"REKIN-PEG-2025-62427",
+//      "kode_program":"5.01.03",
+//      "program":"PROGRAM KOORDINASI DAN SINKRONISASI PERENCANAAN PEMBANGUNAN DAERAH",
+//      "kode_kegiatan":"-",
+//      "kegiatan":"-",
+//      "kode_sub_kegiatan":"-",
+//      "sub_kegiatan":"-",
+//      "pagu_anggaran":14416500,
+//      "indikator":"sample",
+//      "target":"1",
+//      "satuan":"%",
+//      "status_rencana_kinerja":"aktif"
+//      }
 
 
 

@@ -22,49 +22,49 @@ public class PerjanjianKinerja extends BaseAuditable {
     private Long id;
 
     // ========= Data Pegawai =========
-    @Column(name = "nama_pegawai", length = 100, nullable = false)
-    private String namaPegawai;
-
-    @Column(name = "id_rencana_kinerja", length = 100, nullable = false, unique = true)
-    private String idRencanaKinerja;
-
-    @Column(name = "nama_rencana_kinerja", length = 255, nullable = false)
-    private String namaRencanaKinerja;
-
-    // ========= Program / Kegiatan =========
-    @Column(name = "kode_program", length = 100, nullable = false)
-    private String kodeProgram;
-
-    @Column(name = "program", length = 100, nullable = false)
-    private String program;
-
-    @Column(name = "kode_kegiatan", length = 100, nullable = false)
-    private String kodeKegiatan;
-
-    @Column(name = "kegiatan", length = 100, nullable = false)
-    private String kegiatan;
-
-    @Column(name = "kode_sub_kegiatan", length = 100, nullable = false)
-    private String kodeSubKegiatan;
-
-    @Column(name = "sub_kegiatan", length = 100, nullable = false)
-    private String subKegiatan;
-
-    // ========= Anggaran & Indikator =========
-    @Column(name = "pagu_anggaran")
-    private Integer paguAnggaran;
-
-    @Column(name = "indikator", length = 255, nullable = false)
-    private String indikator;
-
-    @Column(name = "target", length = 20, nullable = false)
-    private String target;
-
-    @Column(name = "satuan", length = 20, nullable = false)
-    private String satuan;
-
-    @Column(name = "status_rencana_kinerja", length = 50)
-    private String statusRencanaKinerja;
+//    @Column(name = "nama_pegawai", length = 100, nullable = false)
+//    private String namaPegawai;
+//
+//    @Column(name = "id_rencana_kinerja", length = 100, nullable = false, unique = true)
+//    private String idRencanaKinerja;
+//
+//    @Column(name = "nama_rencana_kinerja", length = 255, nullable = false)
+//    private String namaRencanaKinerja;
+//
+//    // ========= Program / Kegiatan =========
+//    @Column(name = "kode_program", length = 100, nullable = false)
+//    private String kodeProgram;
+//
+//    @Column(name = "program", length = 100, nullable = false)
+//    private String program;
+//
+//    @Column(name = "kode_kegiatan", length = 100, nullable = false)
+//    private String kodeKegiatan;
+//
+//    @Column(name = "kegiatan", length = 100, nullable = false)
+//    private String kegiatan;
+//
+//    @Column(name = "kode_sub_kegiatan", length = 100, nullable = false)
+//    private String kodeSubKegiatan;
+//
+//    @Column(name = "sub_kegiatan", length = 100, nullable = false)
+//    private String subKegiatan;
+//
+//    // ========= Anggaran & Indikator =========
+//    @Column(name = "pagu_anggaran")
+//    private Integer paguAnggaran;
+//
+//    @Column(name = "indikator", length = 255, nullable = false)
+//    private String indikator;
+//
+//    @Column(name = "target", length = 20, nullable = false)
+//    private String target;
+//
+//    @Column(name = "satuan", length = 20, nullable = false)
+//    private String satuan;
+//
+//    @Column(name = "status_rencana_kinerja", length = 50)
+//    private String statusRencanaKinerja;
 
     // ========= Data Atasan =========
     @Column(name = "nama_atasan", length = 100, nullable = false)

@@ -1,16 +1,17 @@
 package cc.kertaskerja.laporan.service.PerjanjianKinerja;
 
-import cc.kertaskerja.laporan.dto.LaporanPerjanjianKinerjaDTO;
-import cc.kertaskerja.laporan.dto.PerjanjianKinerjaReqDTO;
-import cc.kertaskerja.laporan.dto.RencanaKinerjaAtasanDTO;
-import cc.kertaskerja.laporan.entity.PerjanjianKinerja;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanReqDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaResDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.VerifikatorReqDTO;
+import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
+import cc.kertaskerja.laporan.entity.Verifikator;
 
 import java.util.List;
 
 public interface PerjanjianKinerjaService {
-    LaporanPerjanjianKinerjaDTO findOnePK(String kodeOpd, String tahun);
+    List<RencanaKinerjaResDTO> findAllRencanaKinerja(String kodeOpd, String tahun);
 
-    List<RencanaKinerjaAtasanDTO> findAllRekinAtasan(String idRekin);
+    Verifikator verification(VerifikatorReqDTO dto);
 
-    PerjanjianKinerja savePK(PerjanjianKinerjaReqDTO dto);
+    RencanaKinerjaAtasan savePK(RencanaKinerjaAtasanReqDTO dto);
 }
