@@ -22,7 +22,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/perjanjian-kinerja")
 @RequiredArgsConstructor
-@Tag(name = "Laporan Perjanjian Kinerja")
+@Tag(name = "Laporan Perjanjian Kinerja", description = "API for laporan perjanjian kinerja")
 public class PerjanjianKinerjaController {
 
     private final PerjanjianKinerjaService pkService;
