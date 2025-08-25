@@ -76,7 +76,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                       .nama_opd(verifikator.getNamaOpd())
                       .nip(encryptService.encrypt(verifikator.getNip()))
                       .nama_atasan(verifikator.getNamaAtasan())
-                      .nip_atasan(verifikator.getNipAtasan())
+                      .nip_atasan(encryptService.encrypt(verifikator.getNipAtasan()))
                       .level_pegawai(verifikator.getLevelPegawai())
                       .status(verifikator.getStatus().name())
                       .tahun_verifikasi(verifikator.getTahunVerifikasi())

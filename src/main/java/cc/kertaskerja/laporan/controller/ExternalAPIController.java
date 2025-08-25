@@ -3,6 +3,7 @@ package cc.kertaskerja.laporan.controller;
 import cc.kertaskerja.laporan.dto.ApiResponse;
 import cc.kertaskerja.laporan.dto.EncryptDTO;
 import cc.kertaskerja.laporan.service.external.EncryptService;
+import cc.kertaskerja.laporan.service.external.OPDService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -11,13 +12,22 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/external")
 public class ExternalAPIController {
 
+    private final OPDService opdService;
     private final EncryptService encryptService;
+    
+    @GetMapping("/opdlist")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getOPDList() {
+        List<Map<String, Object>> result = opdService.findAllOPD();
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data Perangkat Daerah successfully"));
+    }
 
     @PostMapping("/encrypt")
     public ResponseEntity<ApiResponse<?>> encrypt(@Valid @RequestBody EncryptDTO request,
