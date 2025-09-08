@@ -2,6 +2,8 @@ package cc.kertaskerja.laporan.controller;
 
 import cc.kertaskerja.laporan.dto.ApiResponse;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanReqDTO;
+//import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanResDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanResDTO;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaResDTO;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.VerifikatorReqDTO;
 import cc.kertaskerja.laporan.entity.PerjanjianKinerja;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/perjanjian-kinerja")
@@ -36,8 +39,27 @@ public class PerjanjianKinerjaController {
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 
+    @GetMapping("/rekin-atasan/{idRekin}")
+    @Operation(summary = "Menampilkan semua list rencana kinerja atasan")
+    public ResponseEntity<ApiResponse<List<RencanaKinerjaAtasanResDTO>>> findAllRekinAtasan(@PathVariable String idRekin) {
+        List<RencanaKinerjaAtasanResDTO> result = pkService.findAllRencanaKinerjaAtasanByIdRekinPegawai(idRekin);
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
+    }
+
+    @GetMapping("/rencana-kinerja/{nip}/{tahun}")
+    @Operation(summary = "Menampilkan rencana kinerja detail buat dicetak")
+    public ResponseEntity<ApiResponse<RencanaKinerjaResDTO>> getDetailRekin(@PathVariable String nip,
+                                                                            @PathVariable String tahun) {
+        RencanaKinerjaResDTO dto = pkService.pkRencanaKinerja(nip, tahun);
+        ApiResponse<RencanaKinerjaResDTO> response = ApiResponse.success(dto, "Retrieved 1 data successfully");
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/verifikator")
     @Operation(summary = "Masukkan data atasan / verifikator")
+
     public ResponseEntity<ApiResponse<?>> saveVerifikator(@Valid @RequestBody VerifikatorReqDTO reqDTO,
                                                           BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {

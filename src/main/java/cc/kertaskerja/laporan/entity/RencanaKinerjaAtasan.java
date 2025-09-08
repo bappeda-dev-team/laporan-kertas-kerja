@@ -1,7 +1,5 @@
 package cc.kertaskerja.laporan.entity;
 
-import cc.kertaskerja.laporan.dto.PegawaiInfo;
-import cc.kertaskerja.laporan.helper.PegawaiInfoConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -35,6 +33,9 @@ public class RencanaKinerjaAtasan {
 
     @Column(name = "id_rencana_kinerja_bawahan")
     private String idRencanaKinerjaBawahan;
+
+    @Column(name = "nip_bawahan")
+    private String nipBawahan;
 
     @Column(name = "kode_program", length = 100, nullable = false)
     private String kodeProgram;

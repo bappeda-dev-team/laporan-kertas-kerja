@@ -1,12 +1,15 @@
 package cc.kertaskerja.laporan.service.PerjanjianKinerja;
 
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanReqDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanResDTO;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaResDTO;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.VerifikatorReqDTO;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
 import cc.kertaskerja.laporan.enums.StatusEnum;
 import cc.kertaskerja.laporan.exception.ResourceNotFoundException;
+import cc.kertaskerja.laporan.helper.Crypto;
+import cc.kertaskerja.laporan.helper.Format;
 import cc.kertaskerja.laporan.repository.RencanaKinerjaAtasanRepository;
 import cc.kertaskerja.laporan.repository.VerifikatorRepository;
 import cc.kertaskerja.laporan.service.external.EncryptService;
@@ -17,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,39 +48,47 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         List<RencanaKinerjaAtasan> rekinAtasanDBResponse = rekinAtasanRepository.findAll();
         List<Verifikator> verifikatorList = verifikatorRepository.findAll();
 
-        // Buat map verifikator by nip
+        // 🔹 Map verifikator by plain nip (dari DB)
         Map<String, Verifikator> verifikatorByNip = verifikatorList.stream()
               .collect(Collectors.toMap(Verifikator::getNip, v -> v));
 
-        // Buat map atasan by id_rencana_kinerja_bawahan
+        // 🔹 Map atasan by id_rencana_kinerja_bawahan
         Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanDBResponse.stream()
               .collect(Collectors.toMap(RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan, a -> a));
 
-        // Grouping by pegawai (nip)
-        Map<String, List<Map<String, Object>>> groupedByNip = rekinList.stream()
+        // 🔹 Grouping external data by pegawai_id (masih encrypted)
+        Map<String, List<Map<String, Object>>> groupedByEncryptedNip = rekinList.stream()
               .collect(Collectors.groupingBy(r -> (String) r.get("pegawai_id")));
 
         List<RencanaKinerjaResDTO> result = new ArrayList<>();
 
-        for (Map.Entry<String, List<Map<String, Object>>> entry : groupedByNip.entrySet()) {
-            String nip = entry.getKey();
-            List<Map<String, Object>> pegawaiRekinList = entry.getValue();
+        for (Map.Entry<String, List<Map<String, Object>>> entry : groupedByEncryptedNip.entrySet()) {
+            String encryptedNip = entry.getKey();
+            String plainNip;
 
+            try {
+                plainNip = Crypto.decrypt(encryptedNip);
+            } catch (Exception e) {
+                // fallback: kalau ternyata nip bukan encrypted
+                plainNip = encryptedNip;
+            }
+
+            List<Map<String, Object>> pegawaiRekinList = entry.getValue();
             if (pegawaiRekinList.isEmpty()) continue;
 
             Map<String, Object> firstRekin = pegawaiRekinList.get(0);
             Map<String, Object> opd = (Map<String, Object>) firstRekin.get("operasional_daerah");
 
-            // Mapping verifikator
-            Verifikator verifikator = verifikatorByNip.get(nip);
+            // 🔹 Cari verifikator berdasarkan plain nip
+            Verifikator verifikator = verifikatorByNip.get(plainNip);
             RencanaKinerjaResDTO.VerifikatorDTO verifikatorDTO = null;
             if (verifikator != null) {
                 verifikatorDTO = RencanaKinerjaResDTO.VerifikatorDTO.builder()
                       .kode_opd(verifikator.getKodeOpd())
                       .nama_opd(verifikator.getNamaOpd())
-                      .nip(encryptService.encrypt(verifikator.getNip()))
+                      .nip(Crypto.encrypt(verifikator.getNip())) // balikin encrypted
                       .nama_atasan(verifikator.getNamaAtasan())
-                      .nip_atasan(encryptService.encrypt(verifikator.getNipAtasan()))
+                      .nip_atasan(verifikator.getNipAtasan())
                       .level_pegawai(verifikator.getLevelPegawai())
                       .status(verifikator.getStatus().name())
                       .tahun_verifikasi(verifikator.getTahunVerifikasi())
@@ -88,7 +100,6 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
             for (Map<String, Object> rk : pegawaiRekinList) {
                 String idRencanaKinerja = (String) rk.get("id_rencana_kinerja");
 
-                // mapping atasan jika ada
                 RencanaKinerjaAtasan atasan = atasanByBawahan.get(idRencanaKinerja);
                 RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO = null;
                 if (atasan != null) {
@@ -105,8 +116,8 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                           .build();
                 }
 
-                // mapping indikator (bisa kosong)
-                List<Map<String, Object>> indikator = (List<Map<String, Object>>) rk.getOrDefault("indikator", new ArrayList<>());
+                List<Map<String, Object>> indikator = (List<Map<String, Object>>) rk
+                      .getOrDefault("indikator", new ArrayList<>());
 
                 RencanaKinerjaResDTO.RencanaKinerjaDetailDTO detailDTO =
                       RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
@@ -127,7 +138,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
             RencanaKinerjaResDTO dto = RencanaKinerjaResDTO.builder()
                   .kode_opd((String) opd.get("kode_opd"))
                   .nama_opd((String) opd.get("nama_opd"))
-                  .nip(encryptService.encrypt(nip))
+                  .nip(encryptedNip) // balikin nip seperti dari API (tetap encrypted)
                   .nama((String) firstRekin.get("nama_pegawai"))
                   .verifikator(verifikatorDTO)
                   .rencana_kinerja(rencanaKinerjaDetails)
@@ -138,6 +149,101 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
         return result;
     }
+
+
+    @Override
+    public List<RencanaKinerjaAtasanResDTO> findAllRencanaKinerjaAtasanByIdRekinPegawai(String idRekin) {
+        Map<String, Object> rekinAtasanResponse = rencanaKinerjaService.getAllRencanaKinerjaAtasan(idRekin);
+
+        Map<String, Object> data = (Map<String, Object>) rekinAtasanResponse.get("data");
+        List<Map<String, Object>> rekinAtasanList = (List<Map<String, Object>>) data.get("rekin_atasan");
+
+        return rekinAtasanList.stream().map(item -> RencanaKinerjaAtasanResDTO.builder()
+              .id_rencana_kinerja((String) item.get("id"))
+              .nama((String) item.get("nama_pegawai"))
+              .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
+              .kode_program((String) item.get("kode_program"))
+              .program((String) item.get("program"))
+              .pagu_anggaran(Format.parseInteger(item.get("pagu_program")))
+              .status_rencana_kinerja((String) item.get("status_rencana_kinerja"))
+              .build()
+        ).toList();
+    }
+
+    @Override
+    public RencanaKinerjaResDTO pkRencanaKinerja(String nip, String tahun) {
+        if (!Crypto.isEncrypted(nip)) {
+            throw new ResourceNotFoundException("NIP is not encrypted: " + nip);
+        }
+
+        // 1. Call external API
+        Map<String, Object> rekinResponse = rencanaKinerjaService.getDetailRencanaKinerjaByNIP(Crypto.decrypt(nip), tahun);
+
+        // 2. DB responses
+        List<RencanaKinerjaAtasan> rekinAtasanDBResponse = rekinAtasanRepository.findByNipBawahan(nip);
+        List<Verifikator> verifikatorList = verifikatorRepository.findAll();
+
+        // 3. Extract rencana_kinerja list from API
+        List<Map<String, Object>> rencanaKinerjaList = (List<Map<String, Object>>) rekinResponse.get("rencana_kinerja");
+
+        // 4. Pick OPD + Pegawai info from first element
+        Map<String, Object> first = rencanaKinerjaList.get(0);
+        Map<String, Object> opd = (Map<String, Object>) first.get("operasional_daerah");
+
+        // 5. Map each rencana_kinerja + enrich with atasan from DB
+        List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> detailList = rencanaKinerjaList.stream()
+              .map(item -> {
+                  // find matching atasan from DB
+                  RencanaKinerjaAtasan atasan = rekinAtasanDBResponse.stream()
+                        .filter(a -> a.getIdRencanaKinerjaBawahan().equals(item.get("id_rencana_kinerja")))
+                        .findFirst()
+                        .orElse(null);
+
+                  // map atasan if found
+                  RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO = null;
+                  if (atasan != null) {
+                      atasanDTO = RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
+                            .nama(atasan.getNama())
+                            .id_rencana_kinerja(atasan.getIdRencanaKinerja())
+                            .nama_rencana_kinerja(atasan.getNamaRencanaKinerja())
+                            .kode_program(atasan.getKodeProgram())
+                            .program(atasan.getProgram())
+                            .pagu_anggaran(atasan.getPaguAnggaran())
+                            .indikator(atasan.getIndikator())
+                            .target(atasan.getTarget())
+                            .satuan(atasan.getSatuan())
+                            .status_rencana_kinerja(atasan.getStatusRencanaKinerja())
+                            .build();
+                  }
+
+                  // build detail DTO
+                  return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
+                        .id_rencana_kinerja((String) item.get("id_rencana_kinerja"))
+                        .id_pohon((Integer) item.get("id_pohon"))
+                        .nama_pohon((String) item.get("nama_pohon"))
+                        .level_pohon((Integer) item.get("level_pohon"))
+                        .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
+                        .tahun((String) item.get("tahun"))
+                        .status_rencana_kinerja((String) item.get("status_rencana_kinerja"))
+                        .indikator((List<Map<String, Object>>) item.get("indikator"))
+                        .rencana_kinerja_atasan(atasanDTO)
+                        .build();
+              })
+              .toList();
+
+        // 6. (optional) Map verifikator (here returning null for your sample)
+        RencanaKinerjaResDTO.VerifikatorDTO verifikatorDTO = null;
+
+        return RencanaKinerjaResDTO.builder()
+              .kode_opd((String) opd.get("kode_opd"))
+              .nama_opd((String) opd.get("nama_opd"))
+              .nip((String) first.get("pegawai_id"))
+              .nama((String) first.get("nama_pegawai"))
+              .verifikator(verifikatorDTO)
+              .rencana_kinerja(detailList)
+              .build();
+    }
+
 
     @Override
     @Transactional
@@ -166,6 +272,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
               .idRencanaKinerja(dto.getId_rencana_kinerja())
               .namaRencanaKinerja(dto.getNama_rencana_kinerja())
               .idRencanaKinerjaBawahan(dto.getId_rencana_kinerja_bawahan())
+              .nipBawahan(dto.getNip_bawahan())
               .kodeProgram(dto.getKode_program())
               .program(dto.getProgram()).kodeKegiatan(dto.getKode_kegiatan())
               .kegiatan(dto.getKegiatan())

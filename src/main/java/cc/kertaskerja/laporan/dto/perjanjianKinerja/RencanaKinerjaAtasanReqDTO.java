@@ -40,6 +40,10 @@ public class RencanaKinerjaAtasanReqDTO {
     @JsonProperty("id_rencana_kinerja_bawahan")
     private String id_rencana_kinerja_bawahan;
 
+    @NotBlank(message = "NIP Bawahan tidak boleh kosong!")
+    @JsonProperty("nip_bawahan")
+    private String nip_bawahan;
+
     @NotBlank(message = "Kode Program wajib diisi!")
     @JsonProperty("kode_program")
     private String kode_program;
