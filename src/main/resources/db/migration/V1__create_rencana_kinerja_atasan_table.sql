@@ -2,11 +2,12 @@ CREATE TABLE IF NOT EXISTS rencana_kinerja_atasan
 (
     id                         BIGSERIAL PRIMARY KEY,
     nama                       VARCHAR(100) NOT NULL,
-    nip                        VARCHAR(18)  NOT NULL,
+    nip                        VARCHAR(255) NOT NULL,
     level_pegawai              INTEGER      NOT NULL,
     id_rencana_kinerja         VARCHAR(100) NOT NULL UNIQUE,
     nama_rencana_kinerja       VARCHAR(255) NOT NULL,
     id_rencana_kinerja_bawahan VARCHAR(100) NOT NULL,
+    nip_bawahan                VARCHAR(255) NOT NULL,
     kode_program               VARCHAR(100) NOT NULL,
     program                    VARCHAR(255) NOT NULL,
     kode_kegiatan              VARCHAR(100) NOT NULL,

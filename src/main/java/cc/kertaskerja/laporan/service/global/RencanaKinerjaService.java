@@ -19,32 +19,26 @@ public class RencanaKinerjaService {
     private String rekinBaseUrl;
 
     public Map<String, Object> getRencanaKinerjaOPD(String kodeOpd, String tahun) {
-        String token = accessTokenService.getAccessToken();
         String url = String.format("%s/api_internal/rencana_kinerja/findall?kode_opd=%s&tahun=%s", rekinBaseUrl, kodeOpd, tahun);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
-
-        return httpClient.get(url, headers, Map.class);
+        return get(url);
     }
 
-    public Map<String, Object> getDetailRencanaKinerja(String idRekin) {
-        String token = accessTokenService.getAccessToken();
-        String url = String.format("%s/detail-rencana_kinerja/%s", rekinBaseUrl, idRekin);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
-
-        return httpClient.get(url, headers, Map.class);
+    public Map<String, Object> getDetailRencanaKinerjaByNIP(String nip, String tahun) {
+        String url = String.format("%s/get_rencana_kinerja/pegawai/%s?tahun=%s", rekinBaseUrl, nip, tahun);
+        return get(url);
     }
 
     public Map<String, Object> getAllRencanaKinerjaAtasan(String idRekin) {
-        String token = accessTokenService.getAccessToken();
         String url = String.format("%s/rekin/atasan/%s", rekinBaseUrl, idRekin);
+        return get(url);
+    }
 
+    /**
+     * 🔹 Private helper to avoid repeating headers + token
+     */
+    private Map<String, Object> get(String url) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
-
+        headers.setBearerAuth(accessTokenService.getAccessToken());
         return httpClient.get(url, headers, Map.class);
     }
 }
