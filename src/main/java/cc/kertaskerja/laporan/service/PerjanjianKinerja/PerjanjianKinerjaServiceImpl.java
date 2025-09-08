@@ -48,45 +48,37 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         List<RencanaKinerjaAtasan> rekinAtasanDBResponse = rekinAtasanRepository.findAll();
         List<Verifikator> verifikatorList = verifikatorRepository.findAll();
 
-        // 🔹 Map verifikator by plain nip (dari DB)
+        // 🔑 Buat map verifikator by plain NIP (decrypt dulu nip di DB)
         Map<String, Verifikator> verifikatorByNip = verifikatorList.stream()
-              .collect(Collectors.toMap(Verifikator::getNip, v -> v));
+              .collect(Collectors.toMap(v -> Crypto.decrypt(v.getNip()), v -> v));
 
-        // 🔹 Map atasan by id_rencana_kinerja_bawahan
+        // Buat map atasan by id_rencana_kinerja_bawahan
         Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanDBResponse.stream()
               .collect(Collectors.toMap(RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan, a -> a));
 
-        // 🔹 Grouping external data by pegawai_id (masih encrypted)
-        Map<String, List<Map<String, Object>>> groupedByEncryptedNip = rekinList.stream()
+        // Grouping by pegawai (nip dari API → plain text)
+        Map<String, List<Map<String, Object>>> groupedByNip = rekinList.stream()
               .collect(Collectors.groupingBy(r -> (String) r.get("pegawai_id")));
 
         List<RencanaKinerjaResDTO> result = new ArrayList<>();
 
-        for (Map.Entry<String, List<Map<String, Object>>> entry : groupedByEncryptedNip.entrySet()) {
-            String encryptedNip = entry.getKey();
-            String plainNip;
-
-            try {
-                plainNip = Crypto.decrypt(encryptedNip);
-            } catch (Exception e) {
-                // fallback: kalau ternyata nip bukan encrypted
-                plainNip = encryptedNip;
-            }
-
+        for (Map.Entry<String, List<Map<String, Object>>> entry : groupedByNip.entrySet()) {
+            String nip = entry.getKey(); // plain nip dari API
             List<Map<String, Object>> pegawaiRekinList = entry.getValue();
+
             if (pegawaiRekinList.isEmpty()) continue;
 
             Map<String, Object> firstRekin = pegawaiRekinList.get(0);
             Map<String, Object> opd = (Map<String, Object>) firstRekin.get("operasional_daerah");
 
-            // 🔹 Cari verifikator berdasarkan plain nip
-            Verifikator verifikator = verifikatorByNip.get(plainNip);
+            // 🔑 Mapping verifikator (lookup pakai nip plain)
+            Verifikator verifikator = verifikatorByNip.get(nip);
             RencanaKinerjaResDTO.VerifikatorDTO verifikatorDTO = null;
             if (verifikator != null) {
                 verifikatorDTO = RencanaKinerjaResDTO.VerifikatorDTO.builder()
                       .kode_opd(verifikator.getKodeOpd())
                       .nama_opd(verifikator.getNamaOpd())
-                      .nip(Crypto.encrypt(verifikator.getNip())) // balikin encrypted
+                      .nip(verifikator.getNip()) // tetap encrypted biar aman
                       .nama_atasan(verifikator.getNamaAtasan())
                       .nip_atasan(verifikator.getNipAtasan())
                       .level_pegawai(verifikator.getLevelPegawai())
@@ -100,6 +92,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
             for (Map<String, Object> rk : pegawaiRekinList) {
                 String idRencanaKinerja = (String) rk.get("id_rencana_kinerja");
 
+                // mapping atasan jika ada
                 RencanaKinerjaAtasan atasan = atasanByBawahan.get(idRencanaKinerja);
                 RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO = null;
                 if (atasan != null) {
@@ -116,8 +109,8 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                           .build();
                 }
 
-                List<Map<String, Object>> indikator = (List<Map<String, Object>>) rk
-                      .getOrDefault("indikator", new ArrayList<>());
+                // mapping indikator (bisa kosong)
+                List<Map<String, Object>> indikator = (List<Map<String, Object>>) rk.getOrDefault("indikator", new ArrayList<>());
 
                 RencanaKinerjaResDTO.RencanaKinerjaDetailDTO detailDTO =
                       RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
@@ -135,10 +128,11 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 rencanaKinerjaDetails.add(detailDTO);
             }
 
+            // 🔑 encrypt nip untuk response keluar
             RencanaKinerjaResDTO dto = RencanaKinerjaResDTO.builder()
                   .kode_opd((String) opd.get("kode_opd"))
                   .nama_opd((String) opd.get("nama_opd"))
-                  .nip(encryptedNip) // balikin nip seperti dari API (tetap encrypted)
+                  .nip(Crypto.encrypt(nip)) // encrypt lagi
                   .nama((String) firstRekin.get("nama_pegawai"))
                   .verifikator(verifikatorDTO)
                   .rencana_kinerja(rencanaKinerjaDetails)

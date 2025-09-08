@@ -2,11 +2,9 @@ package cc.kertaskerja.laporan.controller;
 
 import cc.kertaskerja.laporan.dto.ApiResponse;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanReqDTO;
-//import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanResDTO;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanResDTO;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaResDTO;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.VerifikatorReqDTO;
-import cc.kertaskerja.laporan.entity.PerjanjianKinerja;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
 import cc.kertaskerja.laporan.service.PerjanjianKinerja.PerjanjianKinerjaService;
