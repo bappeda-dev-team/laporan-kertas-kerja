@@ -38,7 +38,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         Object rkObj = rekinResponse.get("rencana_kinerja");
 
         if (!(rkObj instanceof List<?> rkList)) {
-            throw new ResourceNotFoundException("No 'rencana_kinerja' data found");
+            throw new ResourceNotFoundException("Data not found");
         }
 
         List<Map<String, Object>> rekinList = (List<Map<String, Object>>) rkList;
@@ -146,6 +146,11 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         Map<String, Object> rekinAtasanResponse = rencanaKinerjaService.getAllRencanaKinerjaAtasan(idRekin);
 
         Map<String, Object> data = (Map<String, Object>) rekinAtasanResponse.get("data");
+
+        if (data == null || data.get("rekin_atasan") == null) {
+            return List.of(); // ⬅️ return empty list, not null
+        }
+
         List<Map<String, Object>> rekinAtasanList = (List<Map<String, Object>>) data.get("rekin_atasan");
 
         return rekinAtasanList.stream().map(item -> RencanaKinerjaAtasanResDTO.builder()
@@ -159,6 +164,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
               .build()
         ).toList();
     }
+
 
     @Override
     public RencanaKinerjaResDTO pkRencanaKinerja(String nip, String tahun) {

@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/perjanjian-kinerja")
@@ -105,27 +104,6 @@ public class PerjanjianKinerjaController {
         return ResponseEntity.ok(ApiResponse.created(saved));
     }
 }
-
-
-//{
-//      "nama":"BAGUS SIMUNTANG, SH, M.Hum",
-//      "nip":"19980407202140001",
-//      "level_pegawai":6,
-//      "id_rencana_kinerja":"REKIN-PEG-2025-70059",
-//      "nama_rencana_kinerja":"Meningkatkan Keselarasan antar dokumen perencanaan",
-//      "id_rencana_kinerja_bawahan":"REKIN-PEG-2025-62427",
-//      "kode_program":"5.01.03",
-//      "program":"PROGRAM KOORDINASI DAN SINKRONISASI PERENCANAAN PEMBANGUNAN DAERAH",
-//      "kode_kegiatan":"-",
-//      "kegiatan":"-",
-//      "kode_sub_kegiatan":"-",
-//      "sub_kegiatan":"-",
-//      "pagu_anggaran":14416500,
-//      "indikator":"sample",
-//      "target":"1",
-//      "satuan":"%",
-//      "status_rencana_kinerja":"aktif"
-//      }
 
 
 
