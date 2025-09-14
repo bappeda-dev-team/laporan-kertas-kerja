@@ -10,11 +10,11 @@ import cc.kertaskerja.laporan.entity.Verifikator;
 import java.util.List;
 
 public interface PerjanjianKinerjaService {
-    List<RencanaKinerjaResDTO> findAllRencanaKinerja(String kodeOpd, String tahun);
+    List<RencanaKinerjaResDTO> findAllRencanaKinerja(String sessionId, String kodeOpd, String tahun);
 
-    List<RencanaKinerjaAtasanResDTO> findAllRencanaKinerjaAtasanByIdRekinPegawai(String idRekin);
+    List<RencanaKinerjaAtasanResDTO> findAllRencanaKinerjaAtasanByIdRekinPegawai(String sessionId, String idRekin);
 
-    RencanaKinerjaResDTO pkRencanaKinerja(String nip, String tahun);
+    RencanaKinerjaResDTO pkRencanaKinerja(String sessionId, String nip, String tahun);
 
     Verifikator verification(VerifikatorReqDTO dto);
 
