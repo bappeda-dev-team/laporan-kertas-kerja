@@ -32,10 +32,9 @@ public class PerjanjianKinerjaController {
     public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(
             @RequestHeader("X-Session-Id") String sessionId,
             @PathVariable String kodeOpd,
-            @PathVariable String tahun) {
-        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(sessionId, kodeOpd, tahun);
-
-        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(kodeOpd, tahun, levelPegawai);
+            @PathVariable String tahun,
+            @RequestParam(required = false) String levelPegawai) {
+        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(sessionId, kodeOpd, tahun, levelPegawai);
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 

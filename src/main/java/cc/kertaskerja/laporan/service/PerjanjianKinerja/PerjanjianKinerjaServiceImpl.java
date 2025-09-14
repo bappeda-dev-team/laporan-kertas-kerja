@@ -38,9 +38,6 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
     @Override
     public List<RencanaKinerjaResDTO> findAllRencanaKinerja(String sessionId, String kodeOpd, String tahun, String levelPegawai) {
-        Map<String, Object> rekinResponse = rencanaKinerjaService.getRencanaKinerjaOPD(sessionId, kodeOpd, tahun);
-        Object rkObj = rekinResponse.get("rencana_kinerja");
-
         String cacheKey = String.format("raw_rekin:%s:%s", kodeOpd, tahun);
         List<Map<String, Object>> rekinList;
 
@@ -55,7 +52,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
             }
         } else {
             // 2️⃣ Ambil dari API jika belum ada di Redis
-            Map<String, Object> rekinResponse = rencanaKinerjaService.getRencanaKinerjaOPD(kodeOpd, tahun);
+            Map<String, Object> rekinResponse = rencanaKinerjaService.getRencanaKinerjaOPD(sessionId, kodeOpd, tahun);
             Object rkObj = rekinResponse.get("rencana_kinerja");
 
             if (!(rkObj instanceof List<?> rkList)) {
