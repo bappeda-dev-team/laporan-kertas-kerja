@@ -29,12 +29,15 @@ public class PerjanjianKinerjaController {
 
     @GetMapping("/get-all-rekin/{kodeOpd}/{tahun}")
     @Operation(summary = "Menampilkan semua data rencana kinerja by OPD")
-    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(@PathVariable String kodeOpd,
-                                                                                         @PathVariable String tahun) {
-        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(kodeOpd, tahun);
+    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(
+          @PathVariable String kodeOpd,
+          @PathVariable String tahun,
+          @RequestParam(required = false) String levelPegawai) {
 
+        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(kodeOpd, tahun, levelPegawai);
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
+
 
     @GetMapping("/rekin-atasan/{idRekin}")
     @Operation(summary = "Menampilkan semua list rencana kinerja atasan")

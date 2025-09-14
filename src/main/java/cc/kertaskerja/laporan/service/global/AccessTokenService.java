@@ -12,11 +12,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AccessTokenService {
 
-    private final RedisTokenService redisTokenService;
+    private final RedisService redisService;
     private final HttpClient httpClient;
 
     public String getAccessToken() {
-        String cachedToken = redisTokenService.getAccessToken();
+        String cachedToken = redisService.getAccessToken();
         if (cachedToken != null && !cachedToken.isEmpty()) {
             return cachedToken;
         }
@@ -27,8 +27,8 @@ public class AccessTokenService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, String> body = Map.of(
-                "username", "akun_test_level_3",
-                "password", "KabKabMadiun2024"
+              "username", "akun_test_level_3",
+              "password", "KabKabMadiun2024"
         );
 
         Map<String, Object> response = httpClient.post(tokenUrl, body, headers, Map.class);
@@ -36,7 +36,7 @@ public class AccessTokenService {
 
         if (data != null && data.get("token") != null) {
             String accessToken = (String) data.get("token");
-            redisTokenService.saveAccessToken(accessToken);
+            redisService.saveAccessToken(accessToken);
             return accessToken;
         } else {
             throw new RuntimeException("Token not found in response body");
