@@ -1,6 +1,5 @@
 package cc.kertaskerja.laporan.service.external;
 
-import cc.kertaskerja.laporan.service.global.AccessTokenService;
 import cc.kertaskerja.laporan.utils.HttpClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -18,7 +17,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OPDServiceImpl implements OPDService {
 
-    private final AccessTokenService accessTokenService;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
