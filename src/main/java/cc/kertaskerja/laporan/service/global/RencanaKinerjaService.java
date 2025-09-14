@@ -12,7 +12,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RencanaKinerjaService {
 
-    private final AccessTokenService accessTokenService;
     private final HttpClient httpClient;
 
     @Value("${external.rekin.base-url}")

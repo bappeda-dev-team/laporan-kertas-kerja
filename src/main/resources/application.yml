@@ -38,7 +38,7 @@ server:
 
 external:
   rekin:
-    base-url: http://localhost:9000/api/v1/perencanaan
+    base-url: http://kertaskerja.local/api/v1/perencanaan
 
 springdoc:
   api-docs:
