@@ -10,7 +10,7 @@ import cc.kertaskerja.laporan.entity.Verifikator;
 import java.util.List;
 
 public interface PerjanjianKinerjaService {
-    List<RencanaKinerjaResDTO> findAllRencanaKinerja(String kodeOpd, String tahun);
+    List<RencanaKinerjaResDTO> findAllRencanaKinerja(String kodeOpd, String tahun, String levelPegawai);
 
     List<RencanaKinerjaAtasanResDTO> findAllRencanaKinerjaAtasanByIdRekinPegawai(String idRekin);
 
