@@ -23,8 +23,8 @@ public class ExternalAPIController {
     private final EncryptService encryptService;
     
     @GetMapping("/opdlist")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getOPDList() {
-        List<Map<String, Object>> result = opdService.findAllOPD();
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getOPDList(@RequestHeader("X-Session-Id") String sessionId) {
+        List<Map<String, Object>> result = opdService.findAllOPD(sessionId);
 
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data Perangkat Daerah successfully"));
     }

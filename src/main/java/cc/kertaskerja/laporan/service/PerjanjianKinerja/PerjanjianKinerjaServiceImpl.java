@@ -37,7 +37,9 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     private final RedisService redisService;
 
     @Override
-    public List<RencanaKinerjaResDTO> findAllRencanaKinerja(String kodeOpd, String tahun, String levelPegawai) {
+    public List<RencanaKinerjaResDTO> findAllRencanaKinerja(String sessionId, String kodeOpd, String tahun, String levelPegawai) {
+        Map<String, Object> rekinResponse = rencanaKinerjaService.getRencanaKinerjaOPD(sessionId, kodeOpd, tahun);
+        Object rkObj = rekinResponse.get("rencana_kinerja");
 
         String cacheKey = String.format("raw_rekin:%s:%s", kodeOpd, tahun);
         List<Map<String, Object>> rekinList;
@@ -177,8 +179,8 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     }
 
     @Override
-    public List<RencanaKinerjaAtasanResDTO> findAllRencanaKinerjaAtasanByIdRekinPegawai(String idRekin) {
-        Map<String, Object> rekinAtasanResponse = rencanaKinerjaService.getAllRencanaKinerjaAtasan(idRekin);
+    public List<RencanaKinerjaAtasanResDTO> findAllRencanaKinerjaAtasanByIdRekinPegawai(String sessionId, String idRekin) {
+        Map<String, Object> rekinAtasanResponse = rencanaKinerjaService.getAllRencanaKinerjaAtasan(sessionId, idRekin);
 
         Map<String, Object> data = (Map<String, Object>) rekinAtasanResponse.get("data");
 
@@ -201,7 +203,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     }
 
     @Override
-    public RencanaKinerjaResDTO pkRencanaKinerja(String nip, String tahun) {
+    public RencanaKinerjaResDTO pkRencanaKinerja(String sessionId, String nip, String tahun) {
         if (!Crypto.isEncrypted(nip)) {
             throw new ResourceNotFoundException("NIP is not encrypted: " + nip);
         }
@@ -210,7 +212,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         String plainNip = Crypto.decrypt(nip);
 
         // 2. Call external API
-        Map<String, Object> rekinResponse = rencanaKinerjaService.getDetailRencanaKinerjaByNIP(plainNip, tahun);
+        Map<String, Object> rekinResponse = rencanaKinerjaService.getDetailRencanaKinerjaByNIP(sessionId, plainNip, tahun);
 
         // 3. DB responses
         List<RencanaKinerjaAtasan> rekinAtasanDBResponse = rekinAtasanRepository.findByNipBawahan(nip); // pakai encrypted nip
