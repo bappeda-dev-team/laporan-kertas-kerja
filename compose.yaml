@@ -1,13 +1,17 @@
 services:
-  app:
-    build: .
-    container_name: laporan
+  postgress:
+    image: postgres:16-alpine
+    container_name: laporan-postgres
+    environment:
+      POSTGRES_USER: majapahit
+      POSTGRES_PASSWORD: Madiun@123
+      POSTGRES_DB: laporan-kertas-kerja
     ports:
-      - "8080:8080"
-    depends_on:
-      - redis
+      - "5432:5432"
     networks:
       - laporan-network
+    volumes:
+      - db-data:/var/lib/postgresql/data
 
   redis:
     image: redis:7

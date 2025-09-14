@@ -26,12 +26,13 @@ public class OPDServiceImpl implements OPDService {
     private String rekinBaseUrl;
 
     @Override
-    public List<Map<String, Object>> findAllOPD() {
-        String token = accessTokenService.getAccessToken();
+    public List<Map<String, Object>> findAllOPD(String sessionId) {
+        //String token = accessTokenService.getAccessToken();
         String url = String.format("%s/opd/findall", rekinBaseUrl);
 
         org.springframework.http.HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
+        //headers.setBearerAuth(token);
+        headers.set("X-Session-Id", sessionId);
 
         Map<String, Object> response = httpClient.get(url, headers, Map.class);
 
