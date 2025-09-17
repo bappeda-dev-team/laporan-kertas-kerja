@@ -29,27 +29,33 @@ public class PerjanjianKinerjaController {
 
     @GetMapping("/get-all-rekin/{kodeOpd}/{tahun}")
     @Operation(summary = "Menampilkan semua data rencana kinerja by OPD")
-    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(@PathVariable String kodeOpd,
-                                                                                         @PathVariable String tahun,
-                                                                                         @RequestParam(required = false) String levelPegawai) {
-        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(kodeOpd, tahun, levelPegawai);
-
+    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(
+            @RequestHeader("X-Session-Id") String sessionId,
+            @PathVariable String kodeOpd,
+            @PathVariable String tahun,
+            @RequestParam(required = false) String levelPegawai) {
+        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(sessionId, kodeOpd, tahun, levelPegawai);
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 
     @GetMapping("/rekin-atasan/{idRekin}")
     @Operation(summary = "Menampilkan semua list rencana kinerja atasan")
-    public ResponseEntity<ApiResponse<List<RencanaKinerjaAtasanResDTO>>> findAllRekinAtasan(@PathVariable String idRekin) {
-        List<RencanaKinerjaAtasanResDTO> result = pkService.findAllRencanaKinerjaAtasanByIdRekinPegawai(idRekin);
+    public ResponseEntity<ApiResponse<List<RencanaKinerjaAtasanResDTO>>> findAllRekinAtasan(
+            @RequestHeader("X-Session-Id") String sessionId,
+            @PathVariable String idRekin
+    ) {
+        List<RencanaKinerjaAtasanResDTO> result = pkService.findAllRencanaKinerjaAtasanByIdRekinPegawai(sessionId,idRekin);
 
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 
     @GetMapping("/rencana-kinerja/{nip}/{tahun}")
     @Operation(summary = "Menampilkan rencana kinerja detail buat dicetak")
-    public ResponseEntity<ApiResponse<RencanaKinerjaResDTO>> getDetailRekin(@PathVariable String nip,
-                                                                            @PathVariable String tahun) {
-        RencanaKinerjaResDTO dto = pkService.pkRencanaKinerja(nip, tahun);
+    public ResponseEntity<ApiResponse<RencanaKinerjaResDTO>> getDetailRekin(
+            @RequestHeader("X-Session-Id") String sessionId,
+            @PathVariable String nip,
+            @PathVariable String tahun) {
+        RencanaKinerjaResDTO dto = pkService.pkRencanaKinerja(sessionId, nip, tahun);
         ApiResponse<RencanaKinerjaResDTO> response = ApiResponse.success(dto, "Retrieved 1 data successfully");
 
         return ResponseEntity.ok(response);

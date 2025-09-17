@@ -3,7 +3,7 @@ spring:
     name: laporankertaskerja
   docker:
     compose:
-      enabled: false
+      enabled: true
       readiness:
         timeout: 5m
         tcp:
@@ -21,22 +21,11 @@ spring:
     password: ${spring.datasource.password}
     url: jdbc:postgresql://localhost:5432/laporan-kertas-kerja
   security:
-    user:
-      name: webproglaporan
-      password: admin123
-  jpa:
-    # Show SQL statements
-    show-sql: true
-    # Hibernate specific properties
-    properties:
-      hibernate:
-        # Format SQL for better readability
-        format_sql: true
-        # Use field access instead of property access
-        access:
-          strategy: field
-        # Disable new ID generator mappings (optional)
-        use-new-id-generator-mappings: false
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak.kertaskerja.local/realms/KabMadiun
+
   data:
     redis:
       host: localhost
@@ -46,37 +35,11 @@ server:
   port: 8080
   tomcat:
     allow-encoded-slashes: true
-  servlet:
-    context-path: /laporan/api
+
 external:
   rekin:
-    base-url: https://api-ekak.zeabur.app
+    base-url: http://kertaskerja.local/api/v1/perencanaan
 
-logging:
-  level:
-    root: warn
-    org:
-      hibernate:
-        SQL: DEBUG
-        type:
-          descriptor:
-            sql:
-              BasicBinder: TRACE
-        transaction: DEBUG
-        orm:
-          jdbc:
-            bind: trace
-      springdoc: DEBUG
-      springframework:
-        web: DEBUG
-        security: DEBUG
-      flywaydb: INFO
-    io:
-      swagger: DEBUG
-    cc:
-      kertaskerja:
-        manrisk_fraud: INFO
-        aop: DEBUG
 springdoc:
   api-docs:
     enabled: true
@@ -89,4 +52,4 @@ springdoc:
     tryItOutEnabled: true
     disable-swagger-default-url: true
   override-with-generic-response: false
-  show-actuator: false
+  show-actuator: true

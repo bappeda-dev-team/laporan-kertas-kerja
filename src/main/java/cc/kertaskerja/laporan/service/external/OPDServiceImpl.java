@@ -1,6 +1,5 @@
 package cc.kertaskerja.laporan.service.external;
 
-import cc.kertaskerja.laporan.service.global.AccessTokenService;
 import cc.kertaskerja.laporan.utils.HttpClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -18,7 +17,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OPDServiceImpl implements OPDService {
 
-    private final AccessTokenService accessTokenService;
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
@@ -26,12 +24,13 @@ public class OPDServiceImpl implements OPDService {
     private String rekinBaseUrl;
 
     @Override
-    public List<Map<String, Object>> findAllOPD() {
-        String token = accessTokenService.getAccessToken();
+    public List<Map<String, Object>> findAllOPD(String sessionId) {
+        //String token = accessTokenService.getAccessToken();
         String url = String.format("%s/opd/findall", rekinBaseUrl);
 
         org.springframework.http.HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
+        //headers.setBearerAuth(token);
+        headers.set("X-Session-Id", sessionId);
 
         Map<String, Object> response = httpClient.get(url, headers, Map.class);
 

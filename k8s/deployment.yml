@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laporankertaskerja-service
+  labels:
+    app: laporankertaskerja-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: laporankertaskerja-service
+  template:
+    metadata:
+      labels:
+        app: laporankertaskerja-service
+    spec:
+      containers:
+        - name: laporankertaskerja-service
+          image: laporankertaskerja-service
+          imagePullPolicy: Never
+          lifecycle:
+            preStop:
+              exec:
+                command: [ "sh", "-c", "sleep 5" ]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: BPL_JVM_THREAD_COUNT
+              value: "50"
+            - name: DB_URL
+              value: jdbc:postgresql://kertaskerja-postgres:5432/kertaskerja_laporan
+            - name: DB_USERNAME
+              value: user
+            - name: DB_PASSWORD
+              value: password
