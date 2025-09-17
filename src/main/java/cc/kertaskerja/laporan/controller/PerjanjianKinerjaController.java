@@ -38,7 +38,6 @@ public class PerjanjianKinerjaController {
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 
-
     @GetMapping("/rekin-atasan/{idRekin}")
     @Operation(summary = "Menampilkan semua list rencana kinerja atasan")
     public ResponseEntity<ApiResponse<List<RencanaKinerjaAtasanResDTO>>> findAllRekinAtasan(
