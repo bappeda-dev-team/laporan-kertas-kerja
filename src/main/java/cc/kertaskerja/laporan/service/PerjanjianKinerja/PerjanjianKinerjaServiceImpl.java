@@ -39,7 +39,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     @Override
     public List<RencanaKinerjaResDTO> findAllRencanaKinerja(String kodeOpd, String tahun, String levelPegawai) {
 
-        String cacheKey = String.format("raw_rekin:%s:%s", kodeOpd, tahun);
+        String cacheKey = String.format("rekin:%s:%s", kodeOpd, tahun);
         List<Map<String, Object>> rekinList;
 
         // 1️⃣ Coba ambil dari Redis
@@ -179,7 +179,6 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     @Override
     public List<RencanaKinerjaAtasanResDTO> findAllRencanaKinerjaAtasanByIdRekinPegawai(String idRekin) {
         Map<String, Object> rekinAtasanResponse = rencanaKinerjaService.getAllRencanaKinerjaAtasan(idRekin);
-
         Map<String, Object> data = (Map<String, Object>) rekinAtasanResponse.get("data");
 
         if (data == null || data.get("rekin_atasan") == null) {
@@ -191,6 +190,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         return rekinAtasanList.stream().map(item -> RencanaKinerjaAtasanResDTO.builder()
               .id_rencana_kinerja((String) item.get("id"))
               .nama((String) item.get("nama_pegawai"))
+              .nip((String) item.get("nip"))
               .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
               .kode_program((String) item.get("kode_program"))
               .program((String) item.get("program"))

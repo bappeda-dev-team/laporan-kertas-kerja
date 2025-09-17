@@ -29,15 +29,13 @@ public class PerjanjianKinerjaController {
 
     @GetMapping("/get-all-rekin/{kodeOpd}/{tahun}")
     @Operation(summary = "Menampilkan semua data rencana kinerja by OPD")
-    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(
-          @PathVariable String kodeOpd,
-          @PathVariable String tahun,
-          @RequestParam(required = false) String levelPegawai) {
-
+    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(@PathVariable String kodeOpd,
+                                                                                         @PathVariable String tahun,
+                                                                                         @RequestParam(required = false) String levelPegawai) {
         List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(kodeOpd, tahun, levelPegawai);
+
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
-
 
     @GetMapping("/rekin-atasan/{idRekin}")
     @Operation(summary = "Menampilkan semua list rencana kinerja atasan")
@@ -59,7 +57,6 @@ public class PerjanjianKinerjaController {
 
     @PostMapping("/verifikator")
     @Operation(summary = "Masukkan data atasan / verifikator")
-
     public ResponseEntity<ApiResponse<?>> saveVerifikator(@Valid @RequestBody VerifikatorReqDTO reqDTO,
                                                           BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {

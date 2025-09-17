@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RencanaKinerjaAtasanResDTO {
     private String nama;
+    private String nip;
     private String id_rencana_kinerja;
     private String nama_rencana_kinerja;
     private String kode_program;
