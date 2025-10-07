@@ -1,9 +1,6 @@
 package cc.kertaskerja.laporan.service.PerjanjianKinerja;
 
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanReqDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanResDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaResDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.VerifikatorReqDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.*;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
 import cc.kertaskerja.laporan.enums.StatusEnum;
@@ -313,6 +310,18 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
               .build();
 
         return verifikatorRepository.save(verifikator);
+    }
+
+    @Override
+    public List<VerifikatorResDTO> findAllVerifikatorByPegawai(String nip) {
+        List<Verifikator> verifikatorList = verifikatorRepository.findVerifikatorByNip(nip);
+
+        return verifikatorList.stream()
+              .map(v -> VerifikatorResDTO.builder()
+                    .nama_atasan(v.getNamaAtasan())
+                    .nip_atasan(v.getNipAtasan())
+                    .build())
+              .toList();
     }
 
     @Override

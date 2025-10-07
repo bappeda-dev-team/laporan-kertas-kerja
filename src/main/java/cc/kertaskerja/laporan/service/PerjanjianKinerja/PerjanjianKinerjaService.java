@@ -1,9 +1,6 @@
 package cc.kertaskerja.laporan.service.PerjanjianKinerja;
 
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanReqDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanResDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaResDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.VerifikatorReqDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.*;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
 
@@ -17,6 +14,8 @@ public interface PerjanjianKinerjaService {
     RencanaKinerjaResDTO pkRencanaKinerja(String sessionId, String nip, String tahun);
 
     Verifikator verification(VerifikatorReqDTO dto);
+
+    List<VerifikatorResDTO> findAllVerifikatorByPegawai(String nip);
 
     RencanaKinerjaAtasan savePK(RencanaKinerjaAtasanReqDTO dto);
 }

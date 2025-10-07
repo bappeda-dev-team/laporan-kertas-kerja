@@ -1,10 +1,7 @@
 package cc.kertaskerja.laporan.controller;
 
 import cc.kertaskerja.laporan.dto.ApiResponse;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanReqDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaAtasanResDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.RencanaKinerjaResDTO;
-import cc.kertaskerja.laporan.dto.perjanjianKinerja.VerifikatorReqDTO;
+import cc.kertaskerja.laporan.dto.perjanjianKinerja.*;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
 import cc.kertaskerja.laporan.service.PerjanjianKinerja.PerjanjianKinerjaService;
@@ -29,21 +26,19 @@ public class PerjanjianKinerjaController {
 
     @GetMapping("/get-all-rekin/{kodeOpd}/{tahun}")
     @Operation(summary = "Menampilkan semua data rencana kinerja by OPD")
-    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(
-            @RequestHeader("X-Session-Id") String sessionId,
-            @PathVariable String kodeOpd,
-            @PathVariable String tahun,
-            @RequestParam(required = false) String levelPegawai) {
+    public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(@RequestHeader("X-Session-Id") String sessionId,
+                                                                                        @PathVariable String kodeOpd,
+                                                                                        @PathVariable String tahun,
+                                                                                        @RequestParam(required = false) String levelPegawai) {
         List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(sessionId, kodeOpd, tahun, levelPegawai);
+
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 
     @GetMapping("/rekin-atasan/{idRekin}")
     @Operation(summary = "Menampilkan semua list rencana kinerja atasan")
-    public ResponseEntity<ApiResponse<List<RencanaKinerjaAtasanResDTO>>> findAllRekinAtasan(
-            @RequestHeader("X-Session-Id") String sessionId,
-            @PathVariable String idRekin
-    ) {
+    public ResponseEntity<ApiResponse<List<RencanaKinerjaAtasanResDTO>>> findAllRekinAtasan(@RequestHeader("X-Session-Id") String sessionId,
+                                                                                            @PathVariable String idRekin) {
         List<RencanaKinerjaAtasanResDTO> result = pkService.findAllRencanaKinerjaAtasanByIdRekinPegawai(sessionId,idRekin);
 
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
@@ -51,10 +46,9 @@ public class PerjanjianKinerjaController {
 
     @GetMapping("/rencana-kinerja/{nip}/{tahun}")
     @Operation(summary = "Menampilkan rencana kinerja detail buat dicetak")
-    public ResponseEntity<ApiResponse<RencanaKinerjaResDTO>> getDetailRekin(
-            @RequestHeader("X-Session-Id") String sessionId,
-            @PathVariable String nip,
-            @PathVariable String tahun) {
+    public ResponseEntity<ApiResponse<RencanaKinerjaResDTO>> getDetailRekin(@RequestHeader("X-Session-Id") String sessionId,
+                                                                            @PathVariable String nip,
+                                                                            @PathVariable String tahun) {
         RencanaKinerjaResDTO dto = pkService.pkRencanaKinerja(sessionId, nip, tahun);
         ApiResponse<RencanaKinerjaResDTO> response = ApiResponse.success(dto, "Retrieved 1 data successfully");
 
@@ -83,6 +77,14 @@ public class PerjanjianKinerjaController {
         Verifikator saved = pkService.verification(reqDTO);
 
         return ResponseEntity.ok(ApiResponse.created(saved));
+    }
+
+    @GetMapping("/verifikator/list/{nip}")
+    @Operation(summary = "Menampilkan data atasan berdasarkan NIP pegawai")
+    public ResponseEntity<ApiResponse<List<VerifikatorResDTO>>> getAllAtasanByNIP(@PathVariable String nip) {
+        List<VerifikatorResDTO> result = pkService.findAllVerifikatorByPegawai(nip);
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 
     @PostMapping
