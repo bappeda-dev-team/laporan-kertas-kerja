@@ -1,5 +1,6 @@
 package cc.kertaskerja.laporan.service.PerjanjianKinerja;
 
+import cc.kertaskerja.laporan.dto.PegawaiInfo;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.*;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
@@ -348,5 +349,17 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
               .build();
 
         return rekinAtasanRepository.save(rekinAtasan);
+    }
+
+    @Override
+    public List<PegawaiInfo> listAtasan(String nip, String tahun) {
+        List<RencanaKinerjaAtasan> atasanByNip = rekinAtasanRepository.findByNipBawahanAndTahun(nip, tahun);
+
+        return atasanByNip.stream()
+                .map(v -> PegawaiInfo.builder()
+                        .nama(v.getNama())
+                        .nip(v.getNip())
+                        .build())
+                .toList();
     }
 }

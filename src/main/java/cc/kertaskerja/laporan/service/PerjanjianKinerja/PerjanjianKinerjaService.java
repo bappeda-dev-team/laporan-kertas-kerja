@@ -1,5 +1,6 @@
 package cc.kertaskerja.laporan.service.PerjanjianKinerja;
 
+import cc.kertaskerja.laporan.dto.PegawaiInfo;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.*;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
@@ -18,4 +19,6 @@ public interface PerjanjianKinerjaService {
     List<VerifikatorResDTO> findAllVerifikatorByPegawai(String nip);
 
     RencanaKinerjaAtasan savePK(RencanaKinerjaAtasanReqDTO dto);
+
+    List<PegawaiInfo> listAtasan(String nip, String tahun);
 }

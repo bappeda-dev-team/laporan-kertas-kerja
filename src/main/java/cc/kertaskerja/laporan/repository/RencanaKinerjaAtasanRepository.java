@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface RencanaKinerjaAtasanRepository extends JpaRepository<RencanaKinerjaAtasan, Long> {
+    List<RencanaKinerjaAtasan> findByNipBawahanAndTahun(String nipBawahan, String tahun);
 
     @Query(value = "SELECT * FROM rencana_kinerja_atasan " +
           "WHERE nip_bawahan = :nipBawahan",

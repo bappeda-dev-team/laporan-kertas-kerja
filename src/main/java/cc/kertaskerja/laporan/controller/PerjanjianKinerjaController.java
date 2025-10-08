@@ -1,9 +1,11 @@
 package cc.kertaskerja.laporan.controller;
 
 import cc.kertaskerja.laporan.dto.ApiResponse;
+import cc.kertaskerja.laporan.dto.PegawaiInfo;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.*;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
+import cc.kertaskerja.laporan.exception.BadRequestException;
 import cc.kertaskerja.laporan.service.PerjanjianKinerja.PerjanjianKinerjaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -53,6 +55,18 @@ public class PerjanjianKinerjaController {
         ApiResponse<RencanaKinerjaResDTO> response = ApiResponse.success(dto, "Retrieved 1 data successfully");
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/rencana-kinerja/{nip}/{tahun}/list-atasan")
+    public ResponseEntity<ApiResponse<List<PegawaiInfo>>> getAllAtasanByNip(@PathVariable String nip, @PathVariable String tahun) {
+        if (nip == null || nip.isBlank()) {
+          throw new BadRequestException("NIP Tidak ditemukan");
+        }
+        if (tahun == null || tahun.isBlank()) {
+            throw new BadRequestException("Tahun rencana kinerja dibutuhkan");
+        }
+        List<PegawaiInfo> listAtasan = pkService.listAtasan(nip, tahun);
+        return ResponseEntity.ok(ApiResponse.success(listAtasan, "List Atasan"));
     }
 
     @PostMapping("/verifikator")
