@@ -353,7 +353,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
     @Override
     public List<PegawaiInfo> listAtasan(String nip, String tahun) {
-        List<RencanaKinerjaAtasan> atasanByNip = rekinAtasanRepository.findByNipBawahanAndTahun(nip, tahun);
+        List<RencanaKinerjaAtasan> atasanByNip = rekinAtasanRepository.findByNipBawahan(nip);
 
         return atasanByNip.stream()
                 .map(v -> PegawaiInfo.builder()
