@@ -353,7 +353,12 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     }
 
     @Override
-    public List<PegawaiInfo> listAtasan(String nip) {
+    public List<PegawaiInfo> listAtasan(String encNip) {
+        if (!Crypto.isEncrypted(encNip)) {
+            throw new ResourceNotFoundException("NIP is not encrypted: " + encNip);
+        }
+        String nip = Crypto.decrypt(encNip);
+
         List<RencanaKinerjaAtasan> atasanByNip = rekinAtasanRepository.findByNipBawahan(nip);
 
         return atasanByNip.stream()

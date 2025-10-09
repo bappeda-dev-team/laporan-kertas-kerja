@@ -20,5 +20,5 @@ public interface PerjanjianKinerjaService {
 
     RencanaKinerjaAtasan savePK(RencanaKinerjaAtasanReqDTO dto);
 
-    List<PegawaiInfo> listAtasan(String nip);
+    List<PegawaiInfo> listAtasan(String encNip);
 }

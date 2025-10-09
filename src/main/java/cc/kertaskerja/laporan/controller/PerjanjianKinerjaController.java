@@ -57,12 +57,13 @@ public class PerjanjianKinerjaController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/list-atasan/{nip}")
-    public ResponseEntity<ApiResponse<List<PegawaiInfo>>> getAllAtasanByNip(@PathVariable String nip) {
-        if (nip == null || nip.isBlank()) {
+    @GetMapping("/list-atasan/{encNip}")
+    @Operation(summary = "List atasan by encrypted NIP bawahan")
+    public ResponseEntity<ApiResponse<List<PegawaiInfo>>> getAllAtasanByNip(@PathVariable String encNip) {
+        if (encNip == null || encNip.isBlank()) {
           throw new BadRequestException("NIP Tidak ditemukan");
         }
-        List<PegawaiInfo> listAtasan = pkService.listAtasan(nip);
+        List<PegawaiInfo> listAtasan = pkService.listAtasan(encNip);
         return ResponseEntity.ok(ApiResponse.success(listAtasan, "List Atasan"));
     }
 
