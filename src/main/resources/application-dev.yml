@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: laporankertaskerja
+  docker:
+    compose:
+      enabled: true
+      readiness:
+        timeout: 5m
+        tcp:
+          connect-timeout: 10s
+          read-timeout: 10s
+  datasource:
+    username: majapahit
+    password: Madiun@123
+    url: jdbc:postgresql://localhost:5432/laporan-kertas-kerja
+    hikari:
+      connection-timeout: 2000
+      maximum-pool-size: 5
+  flyway:
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    url: jdbc:postgresql://localhost:5432/laporan-kertas-kerja
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8082
+  servlet:
+    context-path: /laporan/api
+  tomcat:
+    allow-encoded-slashes: true
+
+external:
+  rekin:
+    base-url: http://kertaskerja.local/api/v1/perencanaan
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+    disable-swagger-default-url: true
+  override-with-generic-response: false
+  show-actuator: true
