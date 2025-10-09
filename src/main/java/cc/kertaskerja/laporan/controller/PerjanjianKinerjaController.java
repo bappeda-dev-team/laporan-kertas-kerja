@@ -57,15 +57,12 @@ public class PerjanjianKinerjaController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/rencana-kinerja/{nip}/{tahun}/list-atasan")
-    public ResponseEntity<ApiResponse<List<PegawaiInfo>>> getAllAtasanByNip(@PathVariable String nip, @PathVariable String tahun) {
+    @GetMapping("/list-atasan/{nip}")
+    public ResponseEntity<ApiResponse<List<PegawaiInfo>>> getAllAtasanByNip(@PathVariable String nip) {
         if (nip == null || nip.isBlank()) {
           throw new BadRequestException("NIP Tidak ditemukan");
         }
-        if (tahun == null || tahun.isBlank()) {
-            throw new BadRequestException("Tahun rencana kinerja dibutuhkan");
-        }
-        List<PegawaiInfo> listAtasan = pkService.listAtasan(nip, tahun);
+        List<PegawaiInfo> listAtasan = pkService.listAtasan(nip);
         return ResponseEntity.ok(ApiResponse.success(listAtasan, "List Atasan"));
     }
 

@@ -336,23 +336,24 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
               .namaRencanaKinerja(dto.getNama_rencana_kinerja())
               .idRencanaKinerjaBawahan(dto.getId_rencana_kinerja_bawahan())
               .nipBawahan(dto.getNip_bawahan())
-              .kodeProgram(null)
-              .program(null)
-              .kegiatan(null)
-              .kodeSubKegiatan(null)
-              .subKegiatan(null)
-              .paguAnggaran(null)
-              .indikator(null)
-              .target(null)
-              .satuan(null)
-              .statusRencanaKinerja(null)
+              .kodeProgram("-")
+              .program("-")
+              .kodeKegiatan("-")
+              .kegiatan("-")
+              .kodeSubKegiatan("-")
+              .subKegiatan("-")
+              .paguAnggaran(0)
+              .indikator("-")
+              .target("-")
+              .satuan("-")
+              .statusRencanaKinerja("UNCHECKED")
               .build();
 
         return rekinAtasanRepository.save(rekinAtasan);
     }
 
     @Override
-    public List<PegawaiInfo> listAtasan(String nip, String tahun) {
+    public List<PegawaiInfo> listAtasan(String nip) {
         List<RencanaKinerjaAtasan> atasanByNip = rekinAtasanRepository.findByNipBawahan(nip);
 
         return atasanByNip.stream()
@@ -360,6 +361,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                         .nama(v.getNama())
                         .nip(v.getNip())
                         .build())
+                .distinct()
                 .toList();
     }
 }
