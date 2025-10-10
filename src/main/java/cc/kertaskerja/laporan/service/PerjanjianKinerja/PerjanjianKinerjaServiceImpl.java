@@ -364,7 +364,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         return atasanByNip.stream()
                 .map(v -> PegawaiInfo.builder()
                         .nama(v.getNama())
-                        .nip(v.getNip())
+                        .nip(Crypto.encrypt(v.getNip()))
                         .build())
                 .distinct()
                 .toList();
