@@ -10,7 +10,6 @@ import cc.kertaskerja.laporan.helper.Crypto;
 import cc.kertaskerja.laporan.helper.Format;
 import cc.kertaskerja.laporan.repository.RencanaKinerjaAtasanRepository;
 import cc.kertaskerja.laporan.repository.VerifikatorRepository;
-import cc.kertaskerja.laporan.service.external.EncryptService;
 import cc.kertaskerja.laporan.service.global.RedisService;
 import cc.kertaskerja.laporan.service.global.RencanaKinerjaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,146 +30,128 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     private final VerifikatorRepository verifikatorRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RencanaKinerjaService rencanaKinerjaService;
-    private final EncryptService encryptService;
     private final RedisService redisService;
 
     @Override
     public List<RencanaKinerjaResDTO> findAllRencanaKinerja(String sessionId, String kodeOpd, String tahun, String levelPegawai) {
-        String cacheKey = String.format("rekin:%s:%s", kodeOpd, tahun);
-        List<Map<String, Object>> rekinList;
+        String cacheKey = "rekin:%s:%s".formatted(kodeOpd, tahun);
+        List<Map<String, Object>> rekinList = getCachedRekin(cacheKey)
+                .orElseGet(() -> fetchAndCacheRekin(sessionId, kodeOpd, tahun, cacheKey));
 
-        // 1️⃣ Coba ambil dari Redis
-        String cachedJson = redisService.getRekinResponse(cacheKey);
-        if (cachedJson != null) {
-            try {
-                rekinList = objectMapper.readValue(cachedJson, new TypeReference<>() {
-                });
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to parse cached rekinList", e);
-            }
-        } else {
-            // 2️⃣ Ambil dari API jika belum ada di Redis
-            Map<String, Object> rekinResponse = rencanaKinerjaService.getRencanaKinerjaOPD(sessionId, kodeOpd, tahun);
-            Object rkObj = rekinResponse.get("rencana_kinerja");
-
-            if (!(rkObj instanceof List<?> rkList)) {
-                throw new ResourceNotFoundException("Data not found");
-            }
-
-            rekinList = (List<Map<String, Object>>) rkList;
-
-            // 3️⃣ Simpan ke Redis biar bisa dipakai ulang
-            try {
-                String json = objectMapper.writeValueAsString(rekinList);
-                redisService.saveRekinResponse(cacheKey, json);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException("Failed to cache rekinList", e);
-            }
-        }
-
-        // 🟢 4️⃣ Filter by levelPegawai (bandingkan ke field level_pohon dari API)
         if (levelPegawai != null && !levelPegawai.isBlank()) {
-            try {
-                int levelFilter = Integer.parseInt(levelPegawai);
-                rekinList = rekinList.stream()
-                      .filter(r -> {
-                          Object levelObj = r.get("level_pohon");
-                          return levelObj instanceof Integer && ((Integer) levelObj) == levelFilter;
-                      })
-                      .collect(Collectors.toList());
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("levelPegawai harus berupa angka", e);
-            }
+            int level = Integer.parseInt(levelPegawai);
+            rekinList = rekinList.stream()
+                    .filter(r -> level == (r.get("level_pohon") instanceof Integer lv ? lv : -1))
+                    .toList();
         }
 
-        // 5️⃣ Lanjutkan logic mapping kamu
-        List<RencanaKinerjaAtasan> rekinAtasanDBResponse = rekinAtasanRepository.findAll();
-        List<Verifikator> verifikatorList = verifikatorRepository.findAll();
+        Map<String, Verifikator> verifikatorByNip = verifikatorRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        v -> Crypto.decrypt(v.getNip()),
+                        v -> v,
+                        (v1, v2) -> v1 // 🧩 fix duplicate key error
+                ));
 
-        Map<String, Verifikator> verifikatorByNip = verifikatorList.stream()
-              .collect(Collectors.toMap(v -> Crypto.decrypt(v.getNip()), v -> v));
+        Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan,
+                        a -> a,
+                        (a1, a2) -> a1
+                ));
 
-        Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanDBResponse.stream()
-              .collect(Collectors.toMap(RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan, a -> a));
+        return rekinList.stream()
+                .collect(Collectors.groupingBy(r -> (String) r.get("pegawai_id")))
+                .entrySet().stream()
+                .map(e -> mapToResDTO(e.getKey(), e.getValue(), verifikatorByNip, atasanByBawahan))
+                .toList();
+    }
 
-        Map<String, List<Map<String, Object>>> groupedByNip = rekinList.stream()
-              .collect(Collectors.groupingBy(r -> (String) r.get("pegawai_id")));
-
-        List<RencanaKinerjaResDTO> result = new ArrayList<>();
-
-        for (Map.Entry<String, List<Map<String, Object>>> entry : groupedByNip.entrySet()) {
-            String nip = entry.getKey();
-            List<Map<String, Object>> pegawaiRekinList = entry.getValue();
-            if (pegawaiRekinList.isEmpty()) continue;
-
-            Map<String, Object> firstRekin = pegawaiRekinList.get(0);
-            Map<String, Object> opd = (Map<String, Object>) firstRekin.get("operasional_daerah");
-
-            Verifikator verifikator = verifikatorByNip.get(nip);
-            RencanaKinerjaResDTO.VerifikatorDTO verifikatorDTO = null;
-            if (verifikator != null) {
-                verifikatorDTO = RencanaKinerjaResDTO.VerifikatorDTO.builder()
-                      .kode_opd(verifikator.getKodeOpd())
-                      .nama_opd(verifikator.getNamaOpd())
-                      .nip(verifikator.getNip())
-                      .nama_atasan(verifikator.getNamaAtasan())
-                      .nip_atasan(verifikator.getNipAtasan())
-                      .level_pegawai(verifikator.getLevelPegawai())
-                      .status(verifikator.getStatus().name())
-                      .tahun_verifikasi(verifikator.getTahunVerifikasi())
-                      .build();
-            }
-
-            List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> rencanaKinerjaDetails = new ArrayList<>();
-            for (Map<String, Object> rk : pegawaiRekinList) {
-                String idRencanaKinerja = (String) rk.get("id_rencana_kinerja");
-
-                RencanaKinerjaAtasan atasan = atasanByBawahan.get(idRencanaKinerja);
-                RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO = null;
-                if (atasan != null) {
-                    atasanDTO = RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
-                          .nama(atasan.getNama())
-                          .id_rencana_kinerja(atasan.getIdRencanaKinerja())
-                          .nama_rencana_kinerja(atasan.getNamaRencanaKinerja())
-                          .kode_program(atasan.getKodeProgram())
-                          .program(atasan.getProgram())
-                          .pagu_anggaran(atasan.getPaguAnggaran())
-                          .indikator(atasan.getIndikator())
-                          .target(atasan.getTarget())
-                          .satuan(atasan.getSatuan())
-                          .build();
-                }
-
-                List<Map<String, Object>> indikator = (List<Map<String, Object>>) rk.getOrDefault("indikator", new ArrayList<>());
-
-                rencanaKinerjaDetails.add(
-                      RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
-                            .id_rencana_kinerja(idRencanaKinerja)
-                            .id_pohon((Integer) rk.get("id_pohon"))
-                            .nama_pohon((String) rk.get("nama_pohon"))
-                            .level_pohon((Integer) rk.get("level_pohon"))
-                            .nama_rencana_kinerja((String) rk.get("nama_rencana_kinerja"))
-                            .tahun((String) rk.get("tahun"))
-                            .status_rencana_kinerja((String) rk.get("status_rencana_kinerja"))
-                            .indikator(indikator)
-                            .rencana_kinerja_atasan(atasanDTO)
-                            .build()
-                );
-            }
-
-            result.add(
-                  RencanaKinerjaResDTO.builder()
-                        .kode_opd((String) opd.get("kode_opd"))
-                        .nama_opd((String) opd.get("nama_opd"))
-                        .nip(Crypto.encrypt(nip))
-                        .nama((String) firstRekin.get("nama_pegawai"))
-                        .verifikator(verifikatorDTO)
-                        .rencana_kinerja(rencanaKinerjaDetails)
-                        .build()
-            );
+    private Optional<List<Map<String, Object>>> getCachedRekin(String cacheKey) {
+        String json = redisService.getRekinResponse(cacheKey);
+        if (json == null) return Optional.empty();
+        try {
+            return Optional.of(objectMapper.readValue(json, new TypeReference<>() {}));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse cached rekinList", e);
         }
+    }
 
-        return result;
+    private List<Map<String, Object>> fetchAndCacheRekin(String sessionId, String kodeOpd, String tahun, String cacheKey) {
+        Map<String, Object> resp = rencanaKinerjaService.getRencanaKinerjaOPD(sessionId, kodeOpd, tahun);
+        Object rkObj = resp.get("rencana_kinerja");
+        if (!(rkObj instanceof List<?> rkList)) throw new ResourceNotFoundException("Data not found");
+
+        try {
+            String json = objectMapper.writeValueAsString(rkList);
+            redisService.saveRekinResponse(cacheKey, json);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to cache rekinList", e);
+        }
+        return (List<Map<String, Object>>) rkList;
+    }
+
+    private RencanaKinerjaResDTO mapToResDTO(
+            String nip,
+            List<Map<String, Object>> list,
+            Map<String, Verifikator> verifikatorByNip,
+            Map<String, RencanaKinerjaAtasan> atasanByBawahan
+    ) {
+        Map<String, Object> first = list.getFirst();
+        Map<String, Object> opd = (Map<String, Object>) first.get("operasional_daerah");
+        Verifikator v = verifikatorByNip.get(nip);
+
+        var verifikatorDTO = v == null ? null : RencanaKinerjaResDTO.VerifikatorDTO.builder()
+                .kode_opd(v.getKodeOpd())
+                .nama_opd(v.getNamaOpd())
+                .nip(v.getNip())
+                .nama_atasan(v.getNamaAtasan())
+                .nip_atasan(v.getNipAtasan())
+                .level_pegawai(v.getLevelPegawai())
+                .status(v.getStatus().name())
+                .tahun_verifikasi(v.getTahunVerifikasi())
+                .build();
+
+        List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> details = list.stream()
+                .map(r -> mapDetailDTO(r, atasanByBawahan))
+                .toList();
+
+        return RencanaKinerjaResDTO.builder()
+                .kode_opd((String) opd.get("kode_opd"))
+                .nama_opd((String) opd.get("nama_opd"))
+                .nip(Crypto.encrypt(nip))
+                .nama((String) first.get("nama_pegawai"))
+                .verifikator(verifikatorDTO)
+                .rencana_kinerja(details)
+                .build();
+    }
+
+    private RencanaKinerjaResDTO.RencanaKinerjaDetailDTO mapDetailDTO(Map<String, Object> rk, Map<String, RencanaKinerjaAtasan> atasanByBawahan) {
+        String id = (String) rk.get("id_rencana_kinerja");
+        RencanaKinerjaAtasan a = atasanByBawahan.get(id);
+
+        var atasanDTO = a == null ? null : RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
+                .nama(a.getNama())
+                .id_rencana_kinerja(a.getIdRencanaKinerja())
+                .nama_rencana_kinerja(a.getNamaRencanaKinerja())
+                .kode_program(a.getKodeProgram())
+                .program(a.getProgram())
+                .pagu_anggaran(a.getPaguAnggaran())
+                .indikator(a.getIndikator())
+                .target(a.getTarget())
+                .satuan(a.getSatuan())
+                .build();
+
+        return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
+                .id_rencana_kinerja(id)
+                .id_pohon((Integer) rk.get("id_pohon"))
+                .nama_pohon((String) rk.get("nama_pohon"))
+                .level_pohon((Integer) rk.get("level_pohon"))
+                .nama_rencana_kinerja((String) rk.get("nama_rencana_kinerja"))
+                .tahun((String) rk.get("tahun"))
+                .status_rencana_kinerja((String) rk.get("status_rencana_kinerja"))
+                .indikator((List<Map<String, Object>>) rk.getOrDefault("indikator", List.of()))
+                .rencana_kinerja_atasan(atasanDTO)
+                .build();
     }
 
     @Override
@@ -240,7 +221,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
               .build();
 
         // 6. Pick OPD + Pegawai info from first element
-        Map<String, Object> first = rencanaKinerjaList.get(0);
+        Map<String, Object> first = rencanaKinerjaList.getFirst();
         Map<String, Object> opd = (Map<String, Object>) first.get("operasional_daerah");
 
         // 7. Map only rencana_kinerja that have a matching atasan
