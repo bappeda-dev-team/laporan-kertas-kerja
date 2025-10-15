@@ -28,13 +28,13 @@ public class RencanaKinerjaAtasan {
     @Column(name = "id_rencana_kinerja", length = 100, nullable = false, unique = true)
     private String idRencanaKinerja;
 
-    @Column(name = "nama_rencana_kinerja", length = 255, nullable = false)
+    @Column(name = "nama_rencana_kinerja", nullable = false)
     private String namaRencanaKinerja;
 
     @Column(name = "id_rencana_kinerja_bawahan")
     private String idRencanaKinerjaBawahan;
 
-    @Column(name = "nama_rencana_kinerja_bawahan", length = 255, nullable = false)
+    @Column(name = "nama_rencana_kinerja_bawahan", nullable = false)
     private String namaRencanaKinerjaBawahan;
 
     @Column(name = "nip_bawahan")
@@ -43,7 +43,7 @@ public class RencanaKinerjaAtasan {
     @Column(name = "kode_program", length = 100, nullable = false)
     private String kodeProgram;
 
-    @Column(name = "program", length = 255, nullable = false)
+    @Column(name = "program", nullable = false)
     private String program;
 
     @Column(name = "kode_kegiatan", length = 100, nullable = false)
@@ -61,7 +61,7 @@ public class RencanaKinerjaAtasan {
     @Column(name = "pagu_anggaran")
     private Integer paguAnggaran;
 
-    @Column(name = "indikator", length = 255, nullable = false)
+    @Column(name = "indikator", nullable = false)
     private String indikator;
 
     @Column(name = "target", length = 20, nullable = false)
