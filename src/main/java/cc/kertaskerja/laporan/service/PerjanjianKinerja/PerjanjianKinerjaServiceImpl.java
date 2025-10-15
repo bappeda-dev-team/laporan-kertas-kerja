@@ -70,7 +70,8 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         String json = redisService.getRekinResponse(cacheKey);
         if (json == null) return Optional.empty();
         try {
-            return Optional.of(objectMapper.readValue(json, new TypeReference<>() {}));
+            return Optional.of(objectMapper.readValue(json, new TypeReference<>() {
+            }));
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to parse cached rekinList", e);
         }
@@ -166,15 +167,15 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         List<Map<String, Object>> rekinAtasanList = (List<Map<String, Object>>) data.get("rekin_atasan");
 
         return rekinAtasanList.stream().map(item -> RencanaKinerjaAtasanResDTO.builder()
-              .id_rencana_kinerja((String) item.get("id"))
-              .nama((String) item.get("nama_pegawai"))
-              .nip((String) item.get("nip"))
-              .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
-              .kode_program((String) item.get("kode_program"))
-              .program((String) item.get("program"))
-              .pagu_anggaran(Format.parseInteger(item.get("pagu_program")))
-              .status_rencana_kinerja((String) item.get("status_rencana_kinerja"))
-              .build()
+                .id_rencana_kinerja((String) item.get("id"))
+                .nama((String) item.get("nama_pegawai"))
+                .nip((String) item.get("nip"))
+                .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
+                .kode_program((String) item.get("kode_program"))
+                .program((String) item.get("program"))
+                .pagu_anggaran(Format.parseInteger(item.get("pagu_program")))
+                .status_rencana_kinerja((String) item.get("status_rencana_kinerja"))
+                .build()
         ).toList();
     }
 
@@ -202,7 +203,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
         // 5. Map verifikator by plain NIP
         Map<String, Verifikator> verifikatorByNip = verifikatorList.stream()
-              .collect(Collectors.toMap(v -> Crypto.decrypt(v.getNip()), v -> v));
+                .collect(Collectors.toMap(v -> Crypto.decrypt(v.getNip()), v -> v));
 
         Verifikator verifikator = verifikatorByNip.get(plainNip);
         if (verifikator == null) {
@@ -210,15 +211,15 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         }
 
         RencanaKinerjaResDTO.VerifikatorDTO verifikatorDTO = RencanaKinerjaResDTO.VerifikatorDTO.builder()
-              .kode_opd(verifikator.getKodeOpd())
-              .nama_opd(verifikator.getNamaOpd())
-              .nip(verifikator.getNip()) // tetap encrypted
-              .nama_atasan(verifikator.getNamaAtasan())
-              .nip_atasan(verifikator.getNipAtasan())
-              .level_pegawai(verifikator.getLevelPegawai())
-              .status(verifikator.getStatus().name())
-              .tahun_verifikasi(verifikator.getTahunVerifikasi())
-              .build();
+                .kode_opd(verifikator.getKodeOpd())
+                .nama_opd(verifikator.getNamaOpd())
+                .nip(verifikator.getNip()) // tetap encrypted
+                .nama_atasan(verifikator.getNamaAtasan())
+                .nip_atasan(verifikator.getNipAtasan())
+                .level_pegawai(verifikator.getLevelPegawai())
+                .status(verifikator.getStatus().name())
+                .tahun_verifikasi(verifikator.getTahunVerifikasi())
+                .build();
 
         // 6. Pick OPD + Pegawai info from first element
         Map<String, Object> first = rencanaKinerjaList.getFirst();
@@ -226,70 +227,70 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
         // 7. Map only rencana_kinerja that have a matching atasan
         List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> detailList = rencanaKinerjaList.stream()
-              .map(item -> {
-                  // cari atasan dari DB
-                  RencanaKinerjaAtasan atasan = rekinAtasanDBResponse.stream()
-                        .filter(a -> a.getIdRencanaKinerjaBawahan().equals(item.get("id_rencana_kinerja")))
-                        .findFirst()
-                        .orElse(null);
+                .map(item -> {
+                    // cari atasan dari DB
+                    RencanaKinerjaAtasan atasan = rekinAtasanDBResponse.stream()
+                            .filter(a -> a.getIdRencanaKinerjaBawahan().equals(item.get("id_rencana_kinerja")))
+                            .findFirst()
+                            .orElse(null);
 
-                  if (atasan == null) {
-                      return null; // skip kalau tidak ada atasan
-                  }
+                    if (atasan == null) {
+                        return null; // skip kalau tidak ada atasan
+                    }
 
-                  RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO =
-                        RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
-                              .nama(atasan.getNama())
-                              .id_rencana_kinerja(atasan.getIdRencanaKinerja())
-                              .nama_rencana_kinerja(atasan.getNamaRencanaKinerja())
-                              .kode_program(atasan.getKodeProgram())
-                              .program(atasan.getProgram())
-                              .pagu_anggaran(atasan.getPaguAnggaran())
-                              .indikator(atasan.getIndikator())
-                              .target(atasan.getTarget())
-                              .satuan(atasan.getSatuan())
-                              .status_rencana_kinerja(atasan.getStatusRencanaKinerja())
-                              .build();
+                    RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO =
+                            RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
+                                    .nama(atasan.getNama())
+                                    .id_rencana_kinerja(atasan.getIdRencanaKinerja())
+                                    .nama_rencana_kinerja(atasan.getNamaRencanaKinerja())
+                                    .kode_program(atasan.getKodeProgram())
+                                    .program(atasan.getProgram())
+                                    .pagu_anggaran(atasan.getPaguAnggaran())
+                                    .indikator(atasan.getIndikator())
+                                    .target(atasan.getTarget())
+                                    .satuan(atasan.getSatuan())
+                                    .status_rencana_kinerja(atasan.getStatusRencanaKinerja())
+                                    .build();
 
-                  return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
-                        .id_rencana_kinerja((String) item.get("id_rencana_kinerja"))
-                        .id_pohon((Integer) item.get("id_pohon"))
-                        .nama_pohon((String) item.get("nama_pohon"))
-                        .level_pohon((Integer) item.get("level_pohon"))
-                        .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
-                        .tahun((String) item.get("tahun"))
-                        .status_rencana_kinerja((String) item.get("status_rencana_kinerja"))
-                        .indikator((List<Map<String, Object>>) item.get("indikator"))
-                        .rencana_kinerja_atasan(atasanDTO)
-                        .build();
-              })
-              .filter(Objects::nonNull) // hanya ambil yang punya atasan
-              .toList();
+                    return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
+                            .id_rencana_kinerja((String) item.get("id_rencana_kinerja"))
+                            .id_pohon((Integer) item.get("id_pohon"))
+                            .nama_pohon((String) item.get("nama_pohon"))
+                            .level_pohon((Integer) item.get("level_pohon"))
+                            .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
+                            .tahun((String) item.get("tahun"))
+                            .status_rencana_kinerja((String) item.get("status_rencana_kinerja"))
+                            .indikator((List<Map<String, Object>>) item.get("indikator"))
+                            .rencana_kinerja_atasan(atasanDTO)
+                            .build();
+                })
+                .filter(Objects::nonNull) // hanya ambil yang punya atasan
+                .toList();
 
         // 8. Build DTO response
         return RencanaKinerjaResDTO.builder()
-              .kode_opd((String) opd.get("kode_opd"))
-              .nama_opd((String) opd.get("nama_opd"))
-              .nip(nip) // encrypted
-              .nama((String) first.get("nama_pegawai"))
-              .verifikator(verifikatorDTO)
-              .rencana_kinerja(detailList)
-              .build();
+                .kode_opd((String) opd.get("kode_opd"))
+                .nama_opd((String) opd.get("nama_opd"))
+                .nip(nip) // encrypted
+                .nama((String) first.get("nama_pegawai"))
+                .verifikator(verifikatorDTO)
+                .rencana_kinerja(detailList)
+                .build();
     }
 
     @Override
     @Transactional
     public Verifikator verification(VerifikatorReqDTO dto) {
         Verifikator verifikator = Verifikator.builder()
-              .kodeOpd(dto.getKode_opd())
-              .namaOpd(dto.getNama_opd())
-              .nip(dto.getNip())
-              .namaAtasan(dto.getNama_atasan())
-              .nipAtasan(dto.getNip_atasan())
-              .levelPegawai(dto.getLevel_pegawai())
-              .status(StatusEnum.PENDING)
-              .tahunVerifikasi(dto.getTahun_verifikasi())
-              .build();
+                .kodeOpd(dto.getKode_opd())
+                .namaOpd(dto.getNama_opd())
+                .nip(dto.getNip())
+                .namaAtasan(dto.getNama_atasan())
+                .nipAtasan(dto.getNip_atasan())
+                .levelPegawai(dto.getLevel_pegawai())
+                .status(StatusEnum.PENDING)
+                .tahunVerifikasi(dto.getTahun_verifikasi())
+                .build();
 
         return verifikatorRepository.save(verifikator);
     }
@@ -299,36 +300,37 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         List<Verifikator> verifikatorList = verifikatorRepository.findVerifikatorByNip(nip);
 
         return verifikatorList.stream()
-              .map(v -> VerifikatorResDTO.builder()
-                    .nama_atasan(v.getNamaAtasan())
-                    .nip_atasan(v.getNipAtasan())
-                    .build())
-              .toList();
+                .map(v -> VerifikatorResDTO.builder()
+                        .nama_atasan(v.getNamaAtasan())
+                        .nip_atasan(v.getNipAtasan())
+                        .build())
+                .toList();
     }
 
     @Override
     @Transactional
     public RencanaKinerjaAtasan savePK(RencanaKinerjaAtasanReqDTO dto) {
         RencanaKinerjaAtasan rekinAtasan = RencanaKinerjaAtasan.builder()
-              .nama(dto.getNama())
-              .nip(dto.getNip())
-              .levelPegawai(dto.getLevel_pegawai())
-              .idRencanaKinerja(dto.getId_rencana_kinerja())
-              .namaRencanaKinerja(dto.getNama_rencana_kinerja())
-              .idRencanaKinerjaBawahan(dto.getId_rencana_kinerja_bawahan())
-              .nipBawahan(dto.getNip_bawahan())
-              .kodeProgram("-")
-              .program("-")
-              .kodeKegiatan("-")
-              .kegiatan("-")
-              .kodeSubKegiatan("-")
-              .subKegiatan("-")
-              .paguAnggaran(0)
-              .indikator("-")
-              .target("-")
-              .satuan("-")
-              .statusRencanaKinerja("UNCHECKED")
-              .build();
+                .nama(dto.getNama())
+                .nip(dto.getNip())
+                .levelPegawai(dto.getLevel_pegawai())
+                .idRencanaKinerja(dto.getId_rencana_kinerja())
+                .namaRencanaKinerja(dto.getNama_rencana_kinerja())
+                .idRencanaKinerjaBawahan(dto.getId_rencana_kinerja_bawahan())
+                .namaRencanaKinerjaBawahan(dto.getNama_rencana_kinerja_bawahan())
+                .nipBawahan(dto.getNip_bawahan())
+                .kodeProgram("-")
+                .program("-")
+                .kodeKegiatan("-")
+                .kegiatan("-")
+                .kodeSubKegiatan("-")
+                .subKegiatan("-")
+                .paguAnggaran(0)
+                .indikator("-")
+                .target("-")
+                .satuan("-")
+                .statusRencanaKinerja("UNCHECKED")
+                .build();
 
         return rekinAtasanRepository.save(rekinAtasan);
     }

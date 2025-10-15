@@ -34,6 +34,9 @@ public class RencanaKinerjaAtasan {
     @Column(name = "id_rencana_kinerja_bawahan")
     private String idRencanaKinerjaBawahan;
 
+    @Column(name = "nama_rencana_kinerja_bawahan", length = 255, nullable = false)
+    private String namaRencanaKinerjaBawahan;
+
     @Column(name = "nip_bawahan")
     private String nipBawahan;
 
