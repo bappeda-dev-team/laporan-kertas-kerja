@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class CetakController {
     private final RencanaKinerjaAtasanService service;
 
-    @GetMapping("/perjanjian-kinerja/{encryptedNip}")
-    public ResponseEntity<RencanaKinerjaHierarchyResponse> cetakPk(@PathVariable String encryptedNip) {
-        var result = service.getHierarchyByNipAndTahun(encryptedNip);
+    @GetMapping("/perjanjian-kinerja/{encryptedNip}/{tahun}")
+    public ResponseEntity<RencanaKinerjaHierarchyResponse> cetakPk(@PathVariable String encryptedNip, @PathVariable String tahun) {
+        var result = service.getHierarchyByNipAndTahun(encryptedNip, tahun);
         return ResponseEntity.ok(result);
     }
 }
