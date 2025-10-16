@@ -47,4 +47,8 @@ public class RencanaKinerjaAtasanReqDTO {
     @NotBlank(message = "NIP Bawahan tidak boleh kosong!")
     @JsonProperty("nip_bawahan")
     private String nip_bawahan;
+
+    @NotBlank(message = "Nama Bawahan tidak boleh kosong!")
+    @JsonProperty("nama_bawahan")
+    private String nama_bawahan;
 }

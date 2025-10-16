@@ -319,6 +319,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .idRencanaKinerjaBawahan(dto.getId_rencana_kinerja_bawahan())
                 .namaRencanaKinerjaBawahan(dto.getNama_rencana_kinerja_bawahan())
                 .nipBawahan(dto.getNip_bawahan())
+                .namaBawahan(dto.getNama_bawahan())
                 .kodeProgram("-")
                 .program("-")
                 .kodeKegiatan("-")

@@ -40,6 +40,9 @@ public class RencanaKinerjaAtasan {
     @Column(name = "nip_bawahan")
     private String nipBawahan;
 
+    @Column(name = "nama_bawahan")
+    private String namaBawahan;
+
     @Column(name = "kode_program", length = 100, nullable = false)
     private String kodeProgram;
 

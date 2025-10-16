@@ -1,0 +1,1 @@
+ALTER TABLE rencana_kinerja_atasan ADD COLUMN nama_bawahan TEXT;
