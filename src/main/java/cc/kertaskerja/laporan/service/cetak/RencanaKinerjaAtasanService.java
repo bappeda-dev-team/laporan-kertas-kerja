@@ -39,7 +39,7 @@ public class RencanaKinerjaAtasanService {
         }
         Verifikator atasan = listAtasan.getFirst();
         String namaAtasan = atasan.getNamaAtasan();
-        String nipAtasan = atasan.getNipAtasan();
+        String nipAtasan = Crypto.decrypt(atasan.getNipAtasan());
 
         // find data for setup bawahan
         RencanaKinerjaAtasan first = list.getFirst();
