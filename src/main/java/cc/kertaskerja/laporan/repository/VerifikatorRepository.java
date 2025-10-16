@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface VerifikatorRepository extends JpaRepository<Verifikator, Long> {
-    List<Verifikator> findByNipAndTahunVerifikasi(String nip, String tahunVerifikasi);
+    List<Verifikator> findByNipAndTahunVerifikasi(String nip, int tahunVerifikasi);
 
     @Query("SELECT v FROM Verifikator v WHERE v.nip = :nip")
     List<Verifikator> findVerifikatorByNip(@Param("nip") String nip);

@@ -32,7 +32,8 @@ public class RencanaKinerjaAtasanService {
 
         // find atasan dari status rencana kinerja
         // tambah kode opd kalau perlu
-        List<Verifikator> listAtasan = verifikatorRepository.findByNipAndTahunVerifikasi(encryptedNip, tahun_verifikasi);
+        int tahunInt = Integer.parseInt(tahun_verifikasi);
+        List<Verifikator> listAtasan = verifikatorRepository.findByNipAndTahunVerifikasi(encryptedNip, tahunInt);
         if (listAtasan.size() != 1) {
             throw new IllegalStateException("Atasan belum dipilih");
         }
