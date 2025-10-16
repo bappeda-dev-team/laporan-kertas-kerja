@@ -32,7 +32,7 @@ public class RencanaKinerjaAtasanService {
         String nipAtasan = first.getNip();
         String namaAtasan = first.getNama();
         String nipBawahan = first.getNipBawahan();
-        String namaBawahan = first.getNipBawahan();
+        String namaBawahan = first.getNamaBawahan();
 
         // Group by parent id
         List<RencanaKinerjaHierarchyDTO> grouped =  list.stream()
