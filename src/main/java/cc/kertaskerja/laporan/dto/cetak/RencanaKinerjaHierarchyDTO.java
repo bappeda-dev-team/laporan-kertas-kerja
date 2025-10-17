@@ -31,5 +31,24 @@ public class RencanaKinerjaHierarchyDTO {
 
         @JsonProperty("rencana_kinerja_bawahan")
         private String rencanaKinerjaBawahan;
+
+        @JsonProperty("indikators")
+        private List<IndikatorSasaran> indikatorSasarans;
+
+
+        @Data
+        @Builder
+        @NoArgsConstructor
+        @AllArgsConstructor
+        public static class IndikatorSasaran {
+            @JsonProperty("indikator")
+            private String indikator;
+
+            @JsonProperty("target")
+            private String target;
+
+            @JsonProperty("satuan")
+            private String satuan;
+        }
     }
 }

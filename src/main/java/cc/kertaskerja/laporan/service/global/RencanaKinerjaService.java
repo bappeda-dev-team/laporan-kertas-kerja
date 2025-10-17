@@ -1,10 +1,15 @@
 package cc.kertaskerja.laporan.service.global;
 
+import cc.kertaskerja.laporan.service.external.DetailRekinResponseDTO;
 import cc.kertaskerja.laporan.utils.HttpClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
@@ -13,6 +18,7 @@ import java.util.Map;
 public class RencanaKinerjaService {
 
     private final HttpClient httpClient;
+    private final RestTemplate restTemplate;
 
     @Value("${external.rekin.base-url}")
     private String rekinBaseUrl;
@@ -31,6 +37,18 @@ public class RencanaKinerjaService {
     public Map<String, Object> getAllRencanaKinerjaAtasan(String sessionId, String idRekin) {
         String url = String.format("%s/rekin/atasan/%s", rekinBaseUrl, idRekin);
         return get(sessionId, url);
+    }
+
+    public DetailRekinResponseDTO getDetailRekin(String sessionId, String idRekin) {
+        String url = String.format("%s/detail-rencana_kinerja/%s", rekinBaseUrl, idRekin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Session-Id", sessionId);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<DetailRekinResponseDTO> response = restTemplate.exchange(url, HttpMethod.GET, entity, DetailRekinResponseDTO.class);
+
+        return response.getBody();
     }
 
     /**

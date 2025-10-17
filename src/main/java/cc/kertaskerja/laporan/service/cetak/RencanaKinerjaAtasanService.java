@@ -7,10 +7,14 @@ import cc.kertaskerja.laporan.entity.Verifikator;
 import cc.kertaskerja.laporan.helper.Crypto;
 import cc.kertaskerja.laporan.repository.RencanaKinerjaAtasanRepository;
 import cc.kertaskerja.laporan.repository.VerifikatorRepository;
+import cc.kertaskerja.laporan.service.external.DetailRekinResponseDTO;
+import cc.kertaskerja.laporan.service.external.JabatanService;
+import cc.kertaskerja.laporan.service.global.RencanaKinerjaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,8 +22,10 @@ import java.util.stream.Collectors;
 public class RencanaKinerjaAtasanService {
     private final RencanaKinerjaAtasanRepository repository;
     private final VerifikatorRepository verifikatorRepository;
+    private final JabatanService jabatanService;
+    private final RencanaKinerjaService rencanaKinerjaService;
 
-    public RencanaKinerjaHierarchyResponse getHierarchyByNipAndTahun(String encryptedNip, String tahun_verifikasi) {
+    public RencanaKinerjaHierarchyResponse getHierarchyByNipAndTahun(String encryptedNip, String tahun_verifikasi, String sessionId) {
         String decryptedNip = Crypto.decrypt(encryptedNip);
 
         List<RencanaKinerjaAtasan> list = repository.findByNipBawahan(decryptedNip);
@@ -40,11 +46,14 @@ public class RencanaKinerjaAtasanService {
         Verifikator atasan = listAtasan.getFirst();
         String namaAtasan = atasan.getNamaAtasan();
         String nipAtasan = Crypto.decrypt(atasan.getNipAtasan());
+        String jabatanAtasan = jabatanService.jabatanUser(sessionId, nipAtasan).getNamaJabatan();
+
 
         // find data for setup bawahan
         RencanaKinerjaAtasan first = list.getFirst();
         String nipBawahan = first.getNipBawahan();
         String namaBawahan = first.getNamaBawahan();
+        String jabatanBawahan = jabatanService.jabatanUser(sessionId, nipBawahan).getNamaJabatan();
 
         // Group by parent id
         List<RencanaKinerjaHierarchyDTO> grouped =  list.stream()
@@ -54,10 +63,47 @@ public class RencanaKinerjaAtasanService {
                     var parent = entry.getFirst();
                     var children = entry.stream()
                             .filter(a -> a.getIdRencanaKinerjaBawahan() != null)
-                            .map(a -> RencanaKinerjaHierarchyDTO.ChildDTO.builder()
-                                    .idRencanaKinerjaBawahan(a.getIdRencanaKinerjaBawahan())
-                                    .rencanaKinerjaBawahan(a.getNamaRencanaKinerjaBawahan())
-                                    .build())
+                            .map(a -> {
+                                DetailRekinResponseDTO detail = rencanaKinerjaService.getDetailRekin(sessionId, a.getIdRencanaKinerjaBawahan());
+                                // indikator response
+                                var indRekins = Optional.ofNullable(detail)
+                                        .map(DetailRekinResponseDTO::getRencanaKinerja)
+                                        .map(DetailRekinResponseDTO.RencanaKinerjaItem::getIndikator)
+                                        .filter(inds -> !inds.isEmpty())
+                                        .orElseGet(() -> {
+                                            var dummyTarget = new DetailRekinResponseDTO.RencanaKinerjaItem.IndikatorRekin.TargetIndikator();
+                                            dummyTarget.setTarget("-");
+                                            dummyTarget.setSatuan("-");
+
+                                            var dummyInd = new DetailRekinResponseDTO.RencanaKinerjaItem.IndikatorRekin();
+                                            dummyInd.setNamaIndikator("-");
+                                            dummyInd.setTargets(List.of(dummyTarget));
+                                            return List.of(dummyInd);
+                                        });
+
+                                // map to indikator sasaran kinerja
+                                var indikatorSasaran = indRekins.stream()
+                                        .map(ind -> Optional.ofNullable(ind.getTargets())
+                                                .filter(t -> !t.isEmpty())
+                                                .map(List::getFirst)
+                                                .map(target -> RencanaKinerjaHierarchyDTO.ChildDTO.IndikatorSasaran.builder()
+                                                        .indikator(Optional.ofNullable(ind.getNamaIndikator()).orElse("-"))
+                                                        .target(Optional.ofNullable(target.getTarget()).orElse("-"))
+                                                        .satuan(Optional.ofNullable(target.getSatuan()).orElse("-"))
+                                                        .build())
+                                                .orElseGet(() -> RencanaKinerjaHierarchyDTO.ChildDTO.IndikatorSasaran.builder()
+                                                        .indikator(Optional.ofNullable(ind.getNamaIndikator()).orElse("-"))
+                                                        .target("-")
+                                                        .satuan("-")
+                                                        .build()))
+                                        .toList();
+
+                                return RencanaKinerjaHierarchyDTO.ChildDTO.builder()
+                                        .idRencanaKinerjaBawahan(a.getIdRencanaKinerjaBawahan())
+                                        .rencanaKinerjaBawahan(a.getNamaRencanaKinerjaBawahan())
+                                        .indikatorSasarans(indikatorSasaran)
+                                        .build();
+                            })
                             .toList();
 
                     return RencanaKinerjaHierarchyDTO.builder()
@@ -70,8 +116,10 @@ public class RencanaKinerjaAtasanService {
         return RencanaKinerjaHierarchyResponse.builder()
                 .nipAtasan(nipAtasan)
                 .namaAtasan(namaAtasan)
+                .jabatanAtasan(jabatanAtasan)
                 .nipBawahan(nipBawahan)
                 .namaBawahan(namaBawahan)
+                .jabatanBawahan(jabatanBawahan)
                 .rencanaKinerjas(grouped)
                 .build();
     }
