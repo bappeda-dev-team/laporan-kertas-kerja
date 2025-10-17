@@ -285,6 +285,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .kodeOpd(dto.getKode_opd())
                 .namaOpd(dto.getNama_opd())
                 .nip(dto.getNip())
+                .nama(dto.getNama())
                 .namaAtasan(dto.getNama_atasan())
                 .nipAtasan(dto.getNip_atasan())
                 .levelPegawai(dto.getLevel_pegawai())

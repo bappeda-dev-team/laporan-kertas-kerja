@@ -31,6 +31,9 @@ public class Verifikator extends BaseAuditable {
     @Column(name = "nip")
     private String nip;
 
+    @Column(name = "nama")
+    private String nama;
+
     @Column(name = "nip_atasan")
     private String nipAtasan;
 

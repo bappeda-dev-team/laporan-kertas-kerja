@@ -28,8 +28,11 @@ public class VerifikatorReqDTO {
     private String nama_atasan;
 
     @NotBlank(message = "NIP tidak boleh kosong!")
-    @JsonProperty("nip_bawahan")
+    @JsonProperty("nip")
     private String nip;
+
+    @JsonProperty("nama")
+    private String nama;
 
     @NotBlank(message = "NIP atasan tidak boleh kosong!")
     @JsonProperty("nip_atasan")

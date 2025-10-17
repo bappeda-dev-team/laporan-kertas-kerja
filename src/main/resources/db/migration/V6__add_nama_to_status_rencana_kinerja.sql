@@ -1,0 +1,1 @@
+ALTER TABLE status_rencana_kinerja ADD COLUMN nama VARCHAR(255);
