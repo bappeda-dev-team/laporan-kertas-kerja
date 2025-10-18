@@ -51,4 +51,25 @@ public class RencanaKinerjaAtasanReqDTO {
     @NotBlank(message = "Nama Bawahan tidak boleh kosong!")
     @JsonProperty("nama_bawahan")
     private String nama_bawahan;
+
+    @JsonProperty("kode_program")
+    private String kode_program;
+
+    @JsonProperty("program")
+    private String program;
+
+    @JsonProperty("kode_kegiatan")
+    private String kode_kegiatan;
+
+    @JsonProperty("kegiatan")
+    private String kegiatan;
+
+    @JsonProperty("kode_sub_kegiatan")
+    private String kode_sub_kegiatan;
+
+    @JsonProperty("sub_kegiatan")
+    private String sub_kegiatan;
+
+    @JsonProperty("pagu_anggaran")
+    private Integer pagu_anggaran;
 }

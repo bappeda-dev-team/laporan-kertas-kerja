@@ -21,4 +21,8 @@ public interface PerjanjianKinerjaService {
     RencanaKinerjaAtasan savePK(RencanaKinerjaAtasanReqDTO dto);
 
     List<PegawaiInfo> listAtasan(String encNip);
+
+    Boolean existingRekinAtasan(String idRekinAtasan);
+
+    RencanaKinerjaAtasan updatePK(RencanaKinerjaAtasanReqDTO reqDTO, String idRekinAtasan);
 }

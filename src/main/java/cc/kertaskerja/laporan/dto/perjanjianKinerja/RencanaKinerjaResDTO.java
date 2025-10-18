@@ -22,6 +22,7 @@ public class RencanaKinerjaResDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RencanaKinerjaDetailDTO {
+        private Long id;
         private String id_rencana_kinerja;
         private Integer id_pohon;
         private String nama_pohon;

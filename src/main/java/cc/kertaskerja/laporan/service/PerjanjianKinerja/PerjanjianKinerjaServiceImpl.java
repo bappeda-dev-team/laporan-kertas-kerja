@@ -15,12 +15,15 @@ import cc.kertaskerja.laporan.service.global.RencanaKinerjaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static cc.kertaskerja.laporan.utils.PatchUtil.apply;
 
 @Service
 @RequiredArgsConstructor
@@ -143,6 +146,9 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .build();
 
         return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
+                .id(Optional.ofNullable(a)
+                        .map(RencanaKinerjaAtasan::getId)
+                        .orElse(null))
                 .id_rencana_kinerja(id)
                 .id_pohon((Integer) rk.get("id_pohon"))
                 .nama_pohon((String) rk.get("nama_pohon"))
@@ -353,5 +359,36 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                         .build())
                 .distinct()
                 .toList();
+    }
+
+    @Override
+    public Boolean existingRekinAtasan(String idRekinAtasan) {
+        return rekinAtasanRepository.existsById(Long.parseLong(idRekinAtasan));
+    }
+
+    @Override
+    public RencanaKinerjaAtasan updatePK(RencanaKinerjaAtasanReqDTO reqDTO, String idRekinAtasan) {
+        var existing = rekinAtasanRepository.findById(Long.parseLong(idRekinAtasan))
+                .orElseThrow(() -> new EntityNotFoundException("Rencana kinerja dengan ID " + idRekinAtasan + " tidak ditemukan"));
+
+        // PatchUtil apply
+        // set value jika terdapat di field reqDTO
+        apply(reqDTO.getNama(), existing::setNama);
+        apply(reqDTO.getLevel_pegawai(), existing::setLevelPegawai);
+        apply(reqDTO.getId_rencana_kinerja(), existing::setIdRencanaKinerja);
+        apply(reqDTO.getNama_rencana_kinerja(), existing::setNamaRencanaKinerja);
+        apply(reqDTO.getId_rencana_kinerja_bawahan(), existing::setIdRencanaKinerjaBawahan);
+        apply(reqDTO.getNama_rencana_kinerja_bawahan(), existing::setNamaRencanaKinerjaBawahan);
+        apply(reqDTO.getNip_bawahan(), existing::setNipBawahan);
+        apply(reqDTO.getNama_bawahan(), existing::setNamaBawahan);
+        apply(reqDTO.getKode_program(), existing::setKodeProgram);
+        apply(reqDTO.getProgram(), existing::setProgram);
+        apply(reqDTO.getKode_kegiatan(), existing::setKodeKegiatan);
+        apply(reqDTO.getKegiatan(), existing::setKegiatan);
+        apply(reqDTO.getKode_sub_kegiatan(), existing::setKodeSubKegiatan);
+        apply(reqDTO.getSub_kegiatan(), existing::setSubKegiatan);
+        apply(reqDTO.getPagu_anggaran(), existing::setPaguAnggaran);
+
+        return rekinAtasanRepository.save(existing);
     }
 }

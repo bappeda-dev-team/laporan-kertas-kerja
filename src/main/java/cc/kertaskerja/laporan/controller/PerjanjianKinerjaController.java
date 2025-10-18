@@ -22,6 +22,7 @@ import java.util.List;
 @RequestMapping("/perjanjian-kinerja")
 @RequiredArgsConstructor
 @Tag(name = "Laporan Perjanjian Kinerja", description = "API for laporan perjanjian kinerja")
+@SuppressWarnings("unused")
 public class PerjanjianKinerjaController {
 
     private final PerjanjianKinerjaService pkService;
@@ -46,16 +47,16 @@ public class PerjanjianKinerjaController {
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }
 
-    @GetMapping("/rencana-kinerja/{nip}/{tahun}")
-    @Operation(summary = "Menampilkan rencana kinerja detail buat dicetak")
-    public ResponseEntity<ApiResponse<RencanaKinerjaResDTO>> getDetailRekin(@RequestHeader("X-Session-Id") String sessionId,
-                                                                            @PathVariable String nip,
-                                                                            @PathVariable String tahun) {
-        RencanaKinerjaResDTO dto = pkService.pkRencanaKinerja(sessionId, nip, tahun);
-        ApiResponse<RencanaKinerjaResDTO> response = ApiResponse.success(dto, "Retrieved 1 data successfully");
-
-        return ResponseEntity.ok(response);
-    }
+//    @GetMapping("/rencana-kinerja/{nip}/{tahun}")
+//    @Operation(summary = "Menampilkan rencana kinerja detail buat dicetak")
+//    public ResponseEntity<ApiResponse<RencanaKinerjaResDTO>> getDetailRekin(@RequestHeader("X-Session-Id") String sessionId,
+//                                                                            @PathVariable String nip,
+//                                                                            @PathVariable String tahun) {
+//        RencanaKinerjaResDTO dto = pkService.pkRencanaKinerja(sessionId, nip, tahun);
+//        ApiResponse<RencanaKinerjaResDTO> response = ApiResponse.success(dto, "Retrieved 1 data successfully");
+//
+//        return ResponseEntity.ok(response);
+//    }
 
     @GetMapping("/list-atasan/{encNip}")
     @Operation(summary = "List atasan by encrypted NIP bawahan")
@@ -91,13 +92,13 @@ public class PerjanjianKinerjaController {
         return ResponseEntity.ok(ApiResponse.created(saved));
     }
 
-    @GetMapping("/verifikator/list/{nip}")
-    @Operation(summary = "Menampilkan data atasan berdasarkan NIP pegawai")
-    public ResponseEntity<ApiResponse<List<VerifikatorResDTO>>> getAllAtasanByNIP(@PathVariable String nip) {
-        List<VerifikatorResDTO> result = pkService.findAllVerifikatorByPegawai(nip);
-
-        return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
-    }
+//    @GetMapping("/verifikator/list/{nip}")
+//    @Operation(summary = "Menampilkan data atasan berdasarkan NIP pegawai")
+//    public ResponseEntity<ApiResponse<List<VerifikatorResDTO>>> getAllAtasanByNIP(@PathVariable String nip) {
+//        List<VerifikatorResDTO> result = pkService.findAllVerifikatorByPegawai(nip);
+//
+//        return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
+//    }
 
     @PostMapping
     @Operation(summary = "Hubungkan rencana kinerja pegawai dengan atasan")
@@ -122,6 +123,42 @@ public class PerjanjianKinerjaController {
         RencanaKinerjaAtasan saved = pkService.savePK(reqDTO);
 
         return ResponseEntity.ok(ApiResponse.created(saved));
+    }
+
+    @PatchMapping("/update/{pkId}")
+    @Operation(summary = "Update subkegiatan dan detail rekin terhubung")
+    public ResponseEntity<ApiResponse<?>> updatePK(
+            @PathVariable String pkId,
+            @Valid @RequestBody RencanaKinerjaAtasanReqDTO reqDTO,
+            BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            List<String> errorMessages = bindingResult.getFieldErrors().stream()
+                  .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                  .toList();
+            ApiResponse<List<String>> errorResponse = ApiResponse.<List<String>>builder()
+                    .success(false)
+                    .statusCode(400)
+                    .message("Validation failed")
+                    .errors(errorMessages)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+
+        if (!pkService.existingRekinAtasan(pkId)) {
+            var errResp = ApiResponse.builder()
+                    .success(false)
+                    .statusCode(400)
+                    .message("Bad Request")
+                    .errors(List.of("Rekin terhubung tidak ditemukan"))
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.badRequest().body(errResp);
+        }
+
+        RencanaKinerjaAtasan updated = pkService.updatePK(reqDTO, pkId);
+
+        return ResponseEntity.ok(ApiResponse.updated(updated));
     }
 }
 
