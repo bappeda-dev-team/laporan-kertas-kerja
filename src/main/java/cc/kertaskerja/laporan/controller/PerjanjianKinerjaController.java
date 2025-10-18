@@ -125,6 +125,25 @@ public class PerjanjianKinerjaController {
         return ResponseEntity.ok(ApiResponse.created(saved));
     }
 
+    @GetMapping("/show/{pkId}")
+    @Operation(summary = "Show hubungan rekin bawahan dan atasan by id")
+    public ResponseEntity<ApiResponse<?>> showPK(@PathVariable String pkId) {
+        if (!pkService.existingRekinAtasan(pkId)) {
+            var errResp = ApiResponse.builder()
+                    .success(false)
+                    .statusCode(400)
+                    .message("Bad Request")
+                    .errors(List.of("Rekin terhubung tidak ditemukan"))
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            return ResponseEntity.badRequest().body(errResp);
+        }
+
+        RencanaKinerjaAtasan result = pkService.findById(pkId);
+
+        return ResponseEntity.ok(ApiResponse.success(result, "Retrieved data successfully"));
+    }
+
     @PatchMapping("/update/{pkId}")
     @Operation(summary = "Update subkegiatan dan detail rekin terhubung")
     public ResponseEntity<ApiResponse<?>> updatePK(

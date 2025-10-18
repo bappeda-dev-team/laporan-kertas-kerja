@@ -391,4 +391,10 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
         return rekinAtasanRepository.save(existing);
     }
+
+    @Override
+    public RencanaKinerjaAtasan findById(String pkId) {
+        return rekinAtasanRepository.findById(Long.parseLong(pkId))
+                .orElseThrow(() -> new EntityNotFoundException("Rencana kinerja dengan ID " + pkId + " tidak ditemukan"));
+    }
 }

@@ -25,4 +25,6 @@ public interface PerjanjianKinerjaService {
     Boolean existingRekinAtasan(String idRekinAtasan);
 
     RencanaKinerjaAtasan updatePK(RencanaKinerjaAtasanReqDTO reqDTO, String idRekinAtasan);
+
+    RencanaKinerjaAtasan findById(String pkId);
 }
