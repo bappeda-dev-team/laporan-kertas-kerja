@@ -1,6 +1,7 @@
 package cc.kertaskerja.laporan.service.global;
 
 import cc.kertaskerja.laporan.service.external.DetailRekinResponseDTO;
+import cc.kertaskerja.laporan.service.external.RekinFromPokinResponseDTO;
 import cc.kertaskerja.laporan.utils.HttpClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +48,18 @@ public class RencanaKinerjaService {
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<DetailRekinResponseDTO> response = restTemplate.exchange(url, HttpMethod.GET, entity, DetailRekinResponseDTO.class);
+
+        return response.getBody();
+    }
+
+    public RekinFromPokinResponseDTO getRekinFromPokin(String sessionId, String idRekin) {
+        String url = String.format("%s/cascading_opd/findbyrekin/%s", rekinBaseUrl, idRekin);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Session-Id", sessionId);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<RekinFromPokinResponseDTO> response = restTemplate.exchange(url, HttpMethod.GET, entity, RekinFromPokinResponseDTO.class);
 
         return response.getBody();
     }

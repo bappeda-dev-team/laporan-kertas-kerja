@@ -18,7 +18,7 @@ public interface PerjanjianKinerjaService {
 
     List<VerifikatorResDTO> findAllVerifikatorByPegawai(String nip);
 
-    RencanaKinerjaAtasan savePK(RencanaKinerjaAtasanReqDTO dto);
+    RencanaKinerjaAtasan savePK(String sessionId, RencanaKinerjaAtasanReqDTO dto);
 
     List<PegawaiInfo> listAtasan(String encNip);
 

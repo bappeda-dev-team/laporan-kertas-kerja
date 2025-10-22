@@ -10,6 +10,7 @@ import cc.kertaskerja.laporan.helper.Crypto;
 import cc.kertaskerja.laporan.helper.Format;
 import cc.kertaskerja.laporan.repository.RencanaKinerjaAtasanRepository;
 import cc.kertaskerja.laporan.repository.VerifikatorRepository;
+import cc.kertaskerja.laporan.service.external.RekinFromPokinResponseDTO;
 import cc.kertaskerja.laporan.service.global.RedisService;
 import cc.kertaskerja.laporan.service.global.RencanaKinerjaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static cc.kertaskerja.laporan.utils.PatchUtil.apply;
@@ -185,6 +187,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         ).toList();
     }
 
+    // INI UNTUK APA YA ?
     @Override
     public RencanaKinerjaResDTO pkRencanaKinerja(String sessionId, String nip, String tahun) {
         if (!Crypto.isEncrypted(nip)) {
@@ -314,9 +317,53 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .toList();
     }
 
-    @Override
     @Transactional
-    public RencanaKinerjaAtasan savePK(RencanaKinerjaAtasanReqDTO dto) {
+    @Override
+    public RencanaKinerjaAtasan savePK(String sessionId, RencanaKinerjaAtasanReqDTO dto) {
+        var idRekinBawahan = dto.getId_rencana_kinerja_bawahan();
+        var findDetailBawahan = rencanaKinerjaService.getRekinFromPokin(sessionId, idRekinBawahan);
+
+        AtomicReference<String> kodeProgram = new AtomicReference<>("-");
+        AtomicReference<String> namaProgram = new AtomicReference<>("-");
+        AtomicReference<String> kodeKegiatan = new AtomicReference<>("-");
+        AtomicReference<String> namaKegiatan = new AtomicReference<>("-");
+        AtomicReference<String> kodeSubkegiatan = new AtomicReference<>("-");
+        AtomicReference<String> namaSubkegiatan = new AtomicReference<>("-");
+
+        Optional.ofNullable(findDetailBawahan)
+                .map(RekinFromPokinResponseDTO::getData)
+                .ifPresent(data -> {
+                    // program
+                    Optional.ofNullable(data.getProgram())
+                            .filter(list -> !list.isEmpty())
+                            .map(List::getFirst)
+                            .ifPresent(program -> {
+                                kodeProgram.set(program.getKodeProgram());
+                                namaProgram.set(program.getNamaProgram());
+                            });
+
+                    // kegiatan
+                    Optional.ofNullable(data.getKegiatan())
+                            .filter(list -> !list.isEmpty())
+                            .map(List::getFirst)
+                            .ifPresent(kegiatan -> {
+                                kodeKegiatan.set(kegiatan.getKodeKegiatan());
+                                namaKegiatan.set(kegiatan.getNamaKegiatan());
+                            });
+
+                    // sub kegiatan
+                    Optional.ofNullable(data.getSubKegiatan())
+                            .filter(list -> !list.isEmpty())
+                            .map(List::getFirst)
+                            .ifPresent(sub -> {
+                                kodeSubkegiatan.set(sub.getKodeSubkegiatan());
+                                namaSubkegiatan.set(sub.getNamaSubkegiatan());
+                            });
+                });
+
+        var paguAnggaran = 0;
+        var statusRencanaKinerja = "UNCHECKED";
+
         RencanaKinerjaAtasan rekinAtasan = RencanaKinerjaAtasan.builder()
                 .nama(dto.getNama())
                 .nip(dto.getNip())
@@ -327,17 +374,17 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .namaRencanaKinerjaBawahan(dto.getNama_rencana_kinerja_bawahan())
                 .nipBawahan(dto.getNip_bawahan())
                 .namaBawahan(dto.getNama_bawahan())
-                .kodeProgram("-")
-                .program("-")
-                .kodeKegiatan("-")
-                .kegiatan("-")
-                .kodeSubKegiatan("-")
-                .subKegiatan("-")
-                .paguAnggaran(0)
+                .kodeProgram(String.valueOf(kodeProgram))
+                .program(String.valueOf(namaProgram))
+                .kodeKegiatan(String.valueOf(kodeKegiatan))
+                .kegiatan(String.valueOf(namaKegiatan))
+                .kodeSubKegiatan(String.valueOf(kodeSubkegiatan))
+                .subKegiatan(String.valueOf(namaSubkegiatan))
+                .paguAnggaran(paguAnggaran)
                 .indikator("-")
                 .target("-")
                 .satuan("-")
-                .statusRencanaKinerja("UNCHECKED")
+                .statusRencanaKinerja(statusRencanaKinerja)
                 .build();
 
         return rekinAtasanRepository.save(rekinAtasan);

@@ -102,7 +102,8 @@ public class PerjanjianKinerjaController {
 
     @PostMapping
     @Operation(summary = "Hubungkan rencana kinerja pegawai dengan atasan")
-    public ResponseEntity<ApiResponse<?>> savePK(@Valid @RequestBody RencanaKinerjaAtasanReqDTO reqDTO,
+    public ResponseEntity<ApiResponse<?>> savePK(@RequestHeader("X-Session-Id") String sessionId,
+                                                 @Valid @RequestBody RencanaKinerjaAtasanReqDTO reqDTO,
                                                  BindingResult bindingResult) {
 
         if (bindingResult.hasErrors()) {
@@ -120,7 +121,7 @@ public class PerjanjianKinerjaController {
             return ResponseEntity.badRequest().body(errorResponse);
         }
 
-        RencanaKinerjaAtasan saved = pkService.savePK(reqDTO);
+        RencanaKinerjaAtasan saved = pkService.savePK(sessionId, reqDTO);
 
         return ResponseEntity.ok(ApiResponse.created(saved));
     }
