@@ -444,4 +444,9 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         return rekinAtasanRepository.findById(Long.parseLong(pkId))
                 .orElseThrow(() -> new EntityNotFoundException("Rencana kinerja dengan ID " + pkId + " tidak ditemukan"));
     }
+
+    @Override
+    public void batalkan(String pkId) {
+        rekinAtasanRepository.deleteById(Long.parseLong(pkId));
+    }
 }

@@ -27,4 +27,6 @@ public interface PerjanjianKinerjaService {
     RencanaKinerjaAtasan updatePK(RencanaKinerjaAtasanReqDTO reqDTO, String idRekinAtasan);
 
     RencanaKinerjaAtasan findById(String pkId);
+
+    void batalkan(String pkId);
 }

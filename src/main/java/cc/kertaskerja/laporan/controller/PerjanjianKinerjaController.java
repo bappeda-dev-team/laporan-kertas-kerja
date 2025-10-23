@@ -180,6 +180,26 @@ public class PerjanjianKinerjaController {
 
         return ResponseEntity.ok(ApiResponse.updated(updated));
     }
+
+    @DeleteMapping("/batal/{pkId}")
+    @Operation(summary = "Batalkan hubungan rekin bawahan dan atasan by id")
+    public ResponseEntity<ApiResponse<?>> deletePK(@PathVariable String pkId) {
+        if (!pkService.existingRekinAtasan(pkId)) {
+            var errResp = ApiResponse.builder()
+                    .success(false)
+                    .statusCode(400)
+                    .message("Bad Request")
+                    .errors(List.of("Rekin terhubung tidak ditemukan"))
+                    .timestamp(LocalDateTime.now())
+                    .build();
+        }
+
+        pkService.batalkan(pkId);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                String.format("Rekin Terhubung %s dibatalkan", pkId),
+                "Berhasil dibatalkan"));
+    }
 }
 
 
