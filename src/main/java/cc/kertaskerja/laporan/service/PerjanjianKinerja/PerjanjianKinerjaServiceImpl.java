@@ -175,13 +175,13 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         List<Map<String, Object>> rekinAtasanList = (List<Map<String, Object>>) data.get("rekin_atasan");
 
         return rekinAtasanList.stream().map(item -> RencanaKinerjaAtasanResDTO.builder()
-                .id_rencana_kinerja((String) item.get("id"))
+                .id_rencana_kinerja((String) item.get("id_rencana_kinerja"))
                 .nama((String) item.get("nama_pegawai"))
-                .nip((String) item.get("nip"))
+                .nip((String) item.get("pegawai_id"))
                 .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
-                .kode_program((String) item.get("kode_program"))
-                .program((String) item.get("program"))
-                .pagu_anggaran(Format.parseInteger(item.get("pagu_program")))
+                .kode_program("-")
+                .program("-")
+                .pagu_anggaran(0)
                 .status_rencana_kinerja((String) item.get("status_rencana_kinerja"))
                 .build()
         ).toList();
