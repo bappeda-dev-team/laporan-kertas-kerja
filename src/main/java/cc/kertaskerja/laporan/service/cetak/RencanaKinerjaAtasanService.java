@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +39,15 @@ public class RencanaKinerjaAtasanService {
                     .build();
         }
 
+        List<RencanaKinerjaHierarchyResponse.ItemRekins> itemRekinList = list.stream()
+                .filter(distinctByKey(RencanaKinerjaAtasan::getKodeSubKegiatan))
+                .map(rk -> RencanaKinerjaHierarchyResponse.ItemRekins.builder()
+                        .kodeItem(rk.getKodeSubKegiatan())
+                        .namaItem(rk.getSubKegiatan())
+                        .pagu(rk.getPaguAnggaran())
+                        .build())
+                .collect(Collectors.toList());
+
         // find atasan dari status rencana kinerja
         // tambah kode opd kalau perlu
         int tahunInt = Integer.parseInt(tahun_verifikasi);
@@ -56,7 +68,7 @@ public class RencanaKinerjaAtasanService {
         String jabatanBawahan = jabatanService.jabatanUser(sessionId, nipBawahan).getNamaJabatan();
 
         // Group by parent id
-        List<RencanaKinerjaHierarchyDTO> grouped =  list.stream()
+        List<RencanaKinerjaHierarchyDTO> grouped = list.stream()
                 .collect(Collectors.groupingBy(RencanaKinerjaAtasan::getIdRencanaKinerja))
                 .values().stream()
                 .map(entry -> {
@@ -121,6 +133,12 @@ public class RencanaKinerjaAtasanService {
                 .namaBawahan(namaBawahan)
                 .jabatanBawahan(jabatanBawahan)
                 .rencanaKinerjas(grouped)
+                .itemRekins(itemRekinList)
                 .build();
+    }
+
+    private static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
+        var seen = ConcurrentHashMap.newKeySet();
+        return t -> seen.add(keyExtractor.apply(t));
     }
 }
