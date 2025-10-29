@@ -33,7 +33,7 @@ public class PerjanjianKinerjaController {
                                                                                         @PathVariable String kodeOpd,
                                                                                         @PathVariable String tahun,
                                                                                         @RequestParam(required = false) String levelPegawai) {
-        List<RencanaKinerjaResDTO> result = pkService.findAllRencanaKinerja(sessionId, kodeOpd, tahun, levelPegawai);
+        List<RencanaKinerjaResDTO> result = pkService.getAllRencanaKinerjaOpd(sessionId, kodeOpd, tahun, levelPegawai);
 
         return ResponseEntity.ok(ApiResponse.success(result, "Retrieved " + result.size() + " data successfully"));
     }

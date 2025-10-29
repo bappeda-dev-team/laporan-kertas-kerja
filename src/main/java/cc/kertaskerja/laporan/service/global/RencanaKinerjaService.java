@@ -1,8 +1,11 @@
 package cc.kertaskerja.laporan.service.global;
 
+import cc.kertaskerja.laporan.dto.global.DetailRekinPegawaiResDTO;
+import cc.kertaskerja.laporan.dto.global.RekinOpdByTahunResDTO;
 import cc.kertaskerja.laporan.service.external.DetailRekinResponseDTO;
 import cc.kertaskerja.laporan.service.external.RekinFromPokinResponseDTO;
 import cc.kertaskerja.laporan.utils.HttpClient;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -12,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -22,12 +26,55 @@ public class RencanaKinerjaService {
     private final RestTemplate restTemplate;
 
     @Value("${external.rekin.base-url}")
+    @SuppressWarnings("unused")
     private String rekinBaseUrl;
 
     public Map<String, Object> getRencanaKinerjaOPD(String sessionId, String kodeOpd, String tahun) {
         String url = String.format("%s/api_internal/rencana_kinerja/findall?kode_opd=%s&tahun=%s", rekinBaseUrl, kodeOpd, tahun);
 
         return get(sessionId, url);
+    }
+
+    public RekinOpdByTahunResDTO findAllRekinOpdByTahun(String sessionId, String kodeOpd, String tahun) {
+        String url = String.format("%s/api_internal/rencana_kinerja/findall?kode_opd=%s&tahun=%s", rekinBaseUrl, kodeOpd, tahun);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Session-Id", sessionId);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<RekinOpdByTahunResDTO> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                RekinOpdByTahunResDTO.class
+        );
+
+        return response.getBody();
+    }
+
+    private record DetailRekinsRequest(
+            @JsonProperty("rekin_ids")
+            List<String> rekinIds
+    ) {}
+
+    public DetailRekinPegawaiResDTO detailRekins(String sessionId, List<String> rekinIds) {
+        String url = String.format("%s/cascading_opd/findbymultiplerekin", rekinBaseUrl);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/json");
+        headers.set("X-Session-Id", sessionId);
+
+        DetailRekinsRequest requestBody = new DetailRekinsRequest(rekinIds);
+
+        HttpEntity<DetailRekinsRequest> entity = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<DetailRekinPegawaiResDTO> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                DetailRekinPegawaiResDTO.class
+        );
+
+        return response.getBody();
     }
 
     public Map<String, Object> getDetailRencanaKinerjaByNIP(String sessionId, String nip, String tahun) {

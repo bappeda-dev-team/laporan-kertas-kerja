@@ -1,13 +1,14 @@
 package cc.kertaskerja.laporan.service.PerjanjianKinerja;
 
 import cc.kertaskerja.laporan.dto.PegawaiInfo;
+import cc.kertaskerja.laporan.dto.global.DetailRekinPegawaiResDTO;
+import cc.kertaskerja.laporan.dto.global.RekinOpdByTahunResDTO;
 import cc.kertaskerja.laporan.dto.perjanjianKinerja.*;
 import cc.kertaskerja.laporan.entity.RencanaKinerjaAtasan;
 import cc.kertaskerja.laporan.entity.Verifikator;
 import cc.kertaskerja.laporan.enums.StatusEnum;
 import cc.kertaskerja.laporan.exception.ResourceNotFoundException;
 import cc.kertaskerja.laporan.helper.Crypto;
-import cc.kertaskerja.laporan.helper.Format;
 import cc.kertaskerja.laporan.repository.RencanaKinerjaAtasanRepository;
 import cc.kertaskerja.laporan.repository.VerifikatorRepository;
 import cc.kertaskerja.laporan.service.external.RekinFromPokinResponseDTO;
@@ -448,5 +449,145 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     @Override
     public void batalkan(String pkId) {
         rekinAtasanRepository.deleteById(Long.parseLong(pkId));
+    }
+
+    @Override
+    public List<RencanaKinerjaResDTO> getAllRencanaKinerjaOpd(String sessionId, String kodeOpd, String tahun, String levelPegawai) {
+        // guard level pegawai
+        int tempLevel;
+        try {
+            tempLevel = (levelPegawai == null || levelPegawai.isBlank())
+                    ? 0
+                    : Integer.parseInt(levelPegawai);
+        } catch (NumberFormatException ex) {
+            tempLevel = 0;
+        }
+        final int levelPohonPegawai = tempLevel;
+
+        // get rekin from api perencanan
+        RekinOpdByTahunResDTO rekinApiPerencanaan = rencanaKinerjaService.findAllRekinOpdByTahun(sessionId, kodeOpd, tahun);
+
+        if (rekinApiPerencanaan == null || rekinApiPerencanaan.getRencanaKinerja() == null) {
+            return Collections.emptyList();
+        }
+
+        // kumpulkan rekin id
+        List<String> rekinIds = rekinApiPerencanaan.getRencanaKinerja().stream()
+                .filter(Objects::nonNull)
+                .filter(r -> {
+                    Integer level = r.getLevelPohon();
+                    return levelPohonPegawai == 0 || (level != null && level == levelPohonPegawai);
+                })
+                .map(RekinOpdByTahunResDTO.RencanaKinerja::getIdRencanaKinerja)
+                .toList();
+
+        // get detail rekin
+        DetailRekinPegawaiResDTO detailRekins = rencanaKinerjaService.detailRekins(sessionId, rekinIds);
+        List<DetailRekinPegawaiResDTO.RencanaKinerja> rekinDetails = detailRekins.getData().stream()
+                .filter(Objects::nonNull)
+                .flatMap(dataItem -> {
+                    List<DetailRekinPegawaiResDTO.RencanaKinerja> rk = Optional.ofNullable(dataItem.getRencanaKinerja())
+                            .orElse(Collections.emptyList())
+                            .stream()
+                            .peek(rl -> rl.setLevelPohon(dataItem.getLevelPohon()))
+                            .toList();
+
+                    return rk.stream();
+                })
+                .toList();
+
+
+        // sebelah kanan
+        Map<String, Verifikator> verifikatorByNip = verifikatorRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        v -> Crypto.decrypt(v.getNip()),
+                        v -> v,
+                        (v1, v2) -> v1 // 🧩 fix duplicate key error
+                ));
+
+        // sebelah kiri
+        Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan,
+                        a -> a,
+                        (a1, a2) -> a1
+                ));
+
+        // empty if rekinDetails kosong :(
+        if (rekinDetails.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return rekinDetails.stream()
+                .filter(Objects::nonNull)
+                .filter(rk -> rk.getPegawaiId() != null)
+                .collect(Collectors.groupingBy(DetailRekinPegawaiResDTO.RencanaKinerja::getPegawaiId))
+                .entrySet().stream()
+                .map(e -> {
+                    // nip
+                    String nip = e.getKey();
+                    String nama = e.getValue().getFirst().getNamaPegawai();
+                    // opd
+                    String kode_opd = rekinApiPerencanaan.getRencanaKinerja().getFirst().getOperasionalDaerah().getKodeOpd();
+                    String nama_opd = rekinApiPerencanaan.getRencanaKinerja().getFirst().getOperasionalDaerah().getNamaOpd();
+                    Verifikator v = verifikatorByNip.get(nip);
+
+                    RencanaKinerjaResDTO.VerifikatorDTO verifikator = v == null ? null : RencanaKinerjaResDTO.VerifikatorDTO.builder()
+                            .kode_opd(v.getKodeOpd())
+                            .nama_opd(v.getNamaOpd())
+                            .nip(v.getNip())
+                            .nama_atasan(v.getNamaAtasan())
+                            .nip_atasan(v.getNipAtasan())
+                            .level_pegawai(v.getLevelPegawai())
+                            .status(v.getStatus().name())
+                            .tahun_verifikasi(v.getTahunVerifikasi())
+                            .build();
+
+                    // rencana kinerja
+                    List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> rencanaKinerjaDetails = e.getValue().stream()
+                            .map(rk -> {
+                                String idRekin = rk.getIdRencanaKinerja();
+                                RencanaKinerjaAtasan a = atasanByBawahan.get(idRekin);
+
+                                var atasanDTO = a == null ? null : RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
+                                        .nama(a.getNama())
+                                        .id_rencana_kinerja(a.getIdRencanaKinerja())
+                                        .nama_rencana_kinerja(a.getNamaRencanaKinerja())
+                                        .kode_program(a.getKodeProgram())
+                                        .program(a.getProgram())
+                                        .pagu_anggaran(a.getPaguAnggaran())
+                                        .indikator(a.getIndikator())
+                                        .target(a.getTarget())
+                                        .satuan(a.getSatuan())
+                                        .build();
+
+                                return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
+                                        .id(Optional.ofNullable(a)
+                                                .map(RencanaKinerjaAtasan::getId)
+                                                .orElse(null))
+                                        .id_rencana_kinerja(idRekin)
+                                        .id_pohon(Math.toIntExact(rk.getIdPohon()))
+                                        .nama_pohon(rk.getNamaPohon())
+                                        .level_pohon(rk.getLevelPohon())
+                                        .nama_rencana_kinerja(rk.getNamaRencanaKinerja())
+                                        .tahun(rk.getTahun())
+                                        .status_rencana_kinerja("-")
+                                        .rencana_kinerja_atasan(atasanDTO)
+                                        .build();
+                            })
+                            .toList();
+
+                    return RencanaKinerjaResDTO.builder()
+                            .kode_opd(kode_opd)
+                            .nama_opd(nama_opd)
+                            .nip(Crypto.encrypt(nip))
+                            .nama(nama)
+                            .verifikator(verifikator)
+                            .rencana_kinerja(rencanaKinerjaDetails)
+                            .build();
+
+                    //List<DetailRekinPegawaiResDTO.RencanaKinerja> rks = e.getValue();
+                })
+                .toList();
     }
 }
