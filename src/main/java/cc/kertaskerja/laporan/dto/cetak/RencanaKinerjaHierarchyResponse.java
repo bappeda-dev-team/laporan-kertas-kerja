@@ -31,6 +31,9 @@ public class RencanaKinerjaHierarchyResponse {
     @JsonProperty("nama_bawahan")
     private String namaBawahan;
 
+    @JsonProperty("level_pegawai")
+    private Integer levelPegawai;
+
     @JsonProperty("rencana_kinerjas")
     private List<RencanaKinerjaHierarchyDTO> rencanaKinerjas;
 

@@ -65,6 +65,7 @@ public class RencanaKinerjaAtasanService {
         RencanaKinerjaAtasan first = list.getFirst();
         String nipBawahan = first.getNipBawahan();
         String namaBawahan = first.getNamaBawahan();
+        Integer levelPegawai = first.getLevelPegawai();
         String jabatanBawahan = jabatanService.jabatanUser(sessionId, nipBawahan).getNamaJabatan();
 
         // Group by parent id
@@ -133,6 +134,7 @@ public class RencanaKinerjaAtasanService {
                 .namaBawahan(namaBawahan)
                 .jabatanBawahan(jabatanBawahan)
                 .rencanaKinerjas(grouped)
+                .levelPegawai(levelPegawai)
                 .jenisItem(jenisItem)
                 .itemRekins(itemRekinList)
                 .totalPagu(totalPagu)
@@ -142,13 +144,13 @@ public class RencanaKinerjaAtasanService {
     private List<RencanaKinerjaHierarchyResponse.ItemRekins> susunItemByJenisItem(String jenisItem, List<RencanaKinerjaAtasan> list) {
         Stream<RencanaKinerjaHierarchyResponse.ItemRekins> stream =  list.stream()
                 .map(rk -> {
-                    if (Objects.equals(jenisItem, "program")) {
+                    if (Objects.equals(jenisItem, "Program")) {
                         return RencanaKinerjaHierarchyResponse.ItemRekins.builder()
                                 .kodeItem(rk.getKodeProgram())
                                 .namaItem(rk.getProgram())
                                 .pagu(rk.getPaguAnggaran())
                                 .build();
-                    } else if (Objects.equals(jenisItem, "subkegiatan/kegiatan")) {
+                    } else if (Objects.equals(jenisItem, "Sub Kegiatan/Kegiatan")) {
                         String kodeKegiatanSubkegiatan = rk.getKodeSubKegiatan() + "/" + rk.getKodeKegiatan();
                         String kegiatanSubkegiatan = rk.getSubKegiatan() + "/" + rk.getKegiatan();
                         return RencanaKinerjaHierarchyResponse.ItemRekins.builder()
@@ -165,7 +167,7 @@ public class RencanaKinerjaAtasanService {
                 });
         // filter duplicate logic
         // only program can have multiple item
-        if (Objects.equals(jenisItem, "subkegiatan/kegiatan")) {
+        if (Objects.equals(jenisItem, "Sub Kegiatan/Kegiatan")) {
             stream = stream.filter(distinctByKey(RencanaKinerjaHierarchyResponse.ItemRekins::getKodeItem));
         }
 
@@ -173,9 +175,13 @@ public class RencanaKinerjaAtasanService {
     }
 
     private String findJenisItemByLevel(Integer level) {
+        // level pokin atasan
+        // 4 -> kepala dinas, dimiliki oleh bawahan kabid
+        // 5 -> kabid, dimilik oleh subkoor
+        // 6 -> subkoor, dimiliki oleh staff
         return switch (level) {
-            case 1, 2 -> "program";
-            case 3 -> "subkegiatan/kegiatan";
+            case 4 -> "Program";
+            case 5 -> "Sub Kegiatan/Kegiatan";
             default -> "";
         };
     }
