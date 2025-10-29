@@ -34,6 +34,9 @@ public class RencanaKinerjaHierarchyResponse {
     @JsonProperty("rencana_kinerjas")
     private List<RencanaKinerjaHierarchyDTO> rencanaKinerjas;
 
+    @JsonProperty("jenis_item")
+    private String jenisItem;
+
     // universal way to call
     // program / kegiatna / subkegiatan / bidang urusan
     @JsonProperty("items")
@@ -53,4 +56,7 @@ public class RencanaKinerjaHierarchyResponse {
         @JsonProperty("pagu")
         private Integer pagu;
     }
+
+    @JsonProperty("total_pagu")
+    private Integer totalPagu;
 }

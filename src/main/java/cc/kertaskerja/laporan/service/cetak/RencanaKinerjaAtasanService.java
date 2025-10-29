@@ -14,11 +14,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -39,14 +41,12 @@ public class RencanaKinerjaAtasanService {
                     .build();
         }
 
-        List<RencanaKinerjaHierarchyResponse.ItemRekins> itemRekinList = list.stream()
-                .filter(distinctByKey(RencanaKinerjaAtasan::getKodeSubKegiatan))
-                .map(rk -> RencanaKinerjaHierarchyResponse.ItemRekins.builder()
-                        .kodeItem(rk.getKodeSubKegiatan())
-                        .namaItem(rk.getSubKegiatan())
-                        .pagu(rk.getPaguAnggaran())
-                        .build())
-                .collect(Collectors.toList());
+        String jenisItem = findJenisItemByLevel(list.getFirst().getLevelPegawai());
+
+        List<RencanaKinerjaHierarchyResponse.ItemRekins> itemRekinList = susunItemByJenisItem(jenisItem, list);
+
+        Integer totalPagu = itemRekinList.stream().map(RencanaKinerjaHierarchyResponse.ItemRekins::getPagu)
+                .reduce(0, Integer::sum);
 
         // find atasan dari status rencana kinerja
         // tambah kode opd kalau perlu
@@ -133,8 +133,51 @@ public class RencanaKinerjaAtasanService {
                 .namaBawahan(namaBawahan)
                 .jabatanBawahan(jabatanBawahan)
                 .rencanaKinerjas(grouped)
+                .jenisItem(jenisItem)
                 .itemRekins(itemRekinList)
+                .totalPagu(totalPagu)
                 .build();
+    }
+
+    private List<RencanaKinerjaHierarchyResponse.ItemRekins> susunItemByJenisItem(String jenisItem, List<RencanaKinerjaAtasan> list) {
+        Stream<RencanaKinerjaHierarchyResponse.ItemRekins> stream =  list.stream()
+                .map(rk -> {
+                    if (Objects.equals(jenisItem, "program")) {
+                        return RencanaKinerjaHierarchyResponse.ItemRekins.builder()
+                                .kodeItem(rk.getKodeProgram())
+                                .namaItem(rk.getProgram())
+                                .pagu(rk.getPaguAnggaran())
+                                .build();
+                    } else if (Objects.equals(jenisItem, "subkegiatan/kegiatan")) {
+                        String kodeKegiatanSubkegiatan = rk.getKodeSubKegiatan() + "/" + rk.getKodeKegiatan();
+                        String kegiatanSubkegiatan = rk.getSubKegiatan() + "/" + rk.getKegiatan();
+                        return RencanaKinerjaHierarchyResponse.ItemRekins.builder()
+                                .kodeItem(kodeKegiatanSubkegiatan)
+                                .namaItem(kegiatanSubkegiatan)
+                                .pagu(rk.getPaguAnggaran())
+                                .build();
+                    }
+                    return RencanaKinerjaHierarchyResponse.ItemRekins.builder()
+                            .kodeItem("")
+                            .namaItem("")
+                            .pagu(rk.getPaguAnggaran())
+                            .build();
+                });
+        // filter duplicate logic
+        // only program can have multiple item
+        if (Objects.equals(jenisItem, "subkegiatan/kegiatan")) {
+            stream = stream.filter(distinctByKey(RencanaKinerjaHierarchyResponse.ItemRekins::getKodeItem));
+        }
+
+        return stream.toList();
+    }
+
+    private String findJenisItemByLevel(Integer level) {
+        return switch (level) {
+            case 1, 2 -> "program";
+            case 3 -> "subkegiatan/kegiatan";
+            default -> "";
+        };
     }
 
     private static <T> Predicate<T> distinctByKey(Function<? super T, ?> keyExtractor) {
