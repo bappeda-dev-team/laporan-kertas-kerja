@@ -37,7 +37,8 @@ external:
   rekin:
     base-url: https://api-semarang.kertaskerja.cc/api/v1/perencanaan
   kepegawaian:
-    base-url: https://testapi.kertaskerja.cc/api/v1/tpp
+    base-url: https://api-semarang.kertaskerja.cc/api/v1/tpp
+
 
 springdoc:
   api-docs:
