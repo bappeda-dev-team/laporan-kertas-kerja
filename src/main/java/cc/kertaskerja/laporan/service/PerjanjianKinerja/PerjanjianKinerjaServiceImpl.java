@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static cc.kertaskerja.laporan.utils.PatchUtil.apply;
 
@@ -496,6 +497,41 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 })
                 .toList();
 
+        Map<String, List<Object>> programKegiatanSubkegiatan = detailRekins.getData().stream()
+                .filter(Objects::nonNull)
+                .flatMap(dataItem -> {
+                    // Semua idRencanaKinerja yang ada di dataItem
+                    List<String> idRekins = Optional.ofNullable(dataItem.getRencanaKinerja())
+                            .orElse(Collections.emptyList())
+                            .stream()
+                            .map(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja)
+                            .filter(Objects::nonNull)
+                            .toList();
+
+                    // Gabungkan program, kegiatan, subkegiatan
+                    List<Object> allItems = Stream.of(
+                                    Optional.ofNullable(dataItem.getProgram()).orElse(Collections.emptyList()),
+                                    Optional.ofNullable(dataItem.getKegiatan()).orElse(Collections.emptyList()),
+                                    Optional.ofNullable(dataItem.getSubKegiatan()).orElse(Collections.emptyList())
+                            )
+                            .flatMap(List::stream)
+                            .collect(Collectors.toList());
+
+                    // Setiap idRencanaKinerja -> list yang sama (karena satu pohon punya banyak id)
+                    return idRekins.stream()
+                            .map(id -> Map.entry(id, allItems));
+                })
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        // Merge kalau ada key yang sama (gabungkan list-nya)
+                        (list1, list2) -> {
+                            List<Object> merged = new ArrayList<>(list1);
+                            merged.addAll(list2);
+                            return merged;
+                        }
+                ));
+
 
         // sebelah kanan
         Map<String, Verifikator> verifikatorByNip = verifikatorRepository.findAll().stream()
@@ -549,6 +585,23 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                 String idRekin = rk.getIdRencanaKinerja();
                                 RencanaKinerjaAtasan a = atasanByBawahan.get(idRekin);
 
+                                var myProgramKegiatanSubkegiatan = programKegiatanSubkegiatan.get(idRekin);
+                                List<RencanaKinerjaResDTO.Program> programs = new ArrayList<>();
+                                List<RencanaKinerjaResDTO.Kegiatan> kegiatans = new ArrayList<>();
+                                List<RencanaKinerjaResDTO.SubKegiatan> subkegiatans = new ArrayList<>();
+
+                                if (myProgramKegiatanSubkegiatan != null) {
+                                    for (Object obj : myProgramKegiatanSubkegiatan) {
+                                        if (obj instanceof DetailRekinPegawaiResDTO.Program p) {
+                                            programs.add(mapProgram(p));
+                                        } else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) {
+                                            kegiatans.add(mapKegiatan(k));
+                                        } else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) {
+                                            subkegiatans.add(mapSubKegiatan(s));
+                                        }
+                                    }
+                                }
+
                                 var atasanDTO = a == null ? null : RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
                                         .nama(a.getNama())
                                         .id_rencana_kinerja(a.getIdRencanaKinerja())
@@ -573,6 +626,9 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                         .tahun(rk.getTahun())
                                         .status_rencana_kinerja("-")
                                         .rencana_kinerja_atasan(atasanDTO)
+                                        .programs(programs)
+                                        .kegiatans(kegiatans)
+                                        .subkegiatans(subkegiatans)
                                         .build();
                             })
                             .toList();
@@ -589,5 +645,29 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                     //List<DetailRekinPegawaiResDTO.RencanaKinerja> rks = e.getValue();
                 })
                 .toList();
+    }
+
+    private RencanaKinerjaResDTO.Program mapProgram(DetailRekinPegawaiResDTO.Program src) {
+        RencanaKinerjaResDTO.Program p = new RencanaKinerjaResDTO.Program();
+        p.setKodeProgram(src.getKodeProgram());
+        p.setNamaProgram(src.getNamaProgram());
+        p.setIndikator(src.getIndikator());
+        return p;
+    }
+
+    private RencanaKinerjaResDTO.Kegiatan mapKegiatan(DetailRekinPegawaiResDTO.Kegiatan src) {
+        RencanaKinerjaResDTO.Kegiatan k = new RencanaKinerjaResDTO.Kegiatan();
+        k.setKodeKegiatan(src.getKodeKegiatan());
+        k.setNamaKegiatan(src.getNamaKegiatan());
+        k.setIndikator(src.getIndikator());
+        return k;
+    }
+
+    private RencanaKinerjaResDTO.SubKegiatan mapSubKegiatan(DetailRekinPegawaiResDTO.SubKegiatan src) {
+        RencanaKinerjaResDTO.SubKegiatan s = new RencanaKinerjaResDTO.SubKegiatan();
+        s.setKodeSubkegiatan(src.getKodeSubkegiatan());
+        s.setNamaSubkegiatan(src.getNamaSubkegiatan());
+        s.setIndikator(src.getIndikator());
+        return s;
     }
 }

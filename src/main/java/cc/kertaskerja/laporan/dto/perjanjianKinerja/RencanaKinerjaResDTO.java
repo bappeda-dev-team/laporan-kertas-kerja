@@ -1,5 +1,7 @@
 package cc.kertaskerja.laporan.dto.perjanjianKinerja;
 
+import cc.kertaskerja.laporan.dto.global.DetailRekinPegawaiResDTO;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 import java.util.List;
@@ -31,7 +33,43 @@ public class RencanaKinerjaResDTO {
         private String tahun;
         private String status_rencana_kinerja;
         private List<Map<String, Object>> indikator;
+        private List<Program> programs;
+        private List<Kegiatan> kegiatans;
+        private List<SubKegiatan> subkegiatans;
         private RencanaKinerjaAtasanDTO rencana_kinerja_atasan;
+    }
+
+    @Data
+    public static class Program {
+        @JsonProperty("kode_program")
+        private String kodeProgram;
+
+        @JsonProperty("nama_program")
+        private String namaProgram;
+
+        private List<DetailRekinPegawaiResDTO.Indikator> indikator;
+    }
+
+    @Data
+    public static class Kegiatan {
+        @JsonProperty("kode_kegiatan")
+        private String kodeKegiatan;
+
+        @JsonProperty("nama_kegiatan")
+        private String namaKegiatan;
+
+        private List<DetailRekinPegawaiResDTO.Indikator> indikator;
+    }
+
+    @Data
+    public static class SubKegiatan {
+        @JsonProperty("kode_subkegiatan")
+        private String kodeSubkegiatan;
+
+        @JsonProperty("nama_subkegiatan")
+        private String namaSubkegiatan;
+
+        private List<DetailRekinPegawaiResDTO.Indikator> indikator;
     }
 
     @Data
