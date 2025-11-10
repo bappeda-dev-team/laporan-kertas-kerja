@@ -363,8 +363,14 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                             });
                 });
 
-        var paguAnggaran = 0;
         var statusRencanaKinerja = "UNCHECKED";
+
+        // total pagu pokin (?)
+        int totalPagu = Optional.ofNullable(findDetailBawahan)
+                .map(RekinFromPokinResponseDTO::getData)
+                .map(RekinFromPokinResponseDTO.Pokin::getPaguAnggaranTotal)
+                .map(Double::intValue)
+                .orElse(0);
 
         RencanaKinerjaAtasan rekinAtasan = RencanaKinerjaAtasan.builder()
                 .nama(dto.getNama())
@@ -382,7 +388,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .kegiatan(String.valueOf(namaKegiatan))
                 .kodeSubKegiatan(String.valueOf(kodeSubkegiatan))
                 .subKegiatan(String.valueOf(namaSubkegiatan))
-                .paguAnggaran(paguAnggaran)
+                .paguAnggaran(totalPagu)
                 .indikator("-")
                 .target("-")
                 .satuan("-")
