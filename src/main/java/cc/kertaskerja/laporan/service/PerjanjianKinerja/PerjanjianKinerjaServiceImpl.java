@@ -483,7 +483,13 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .filter(Objects::nonNull)
                 .filter(r -> {
                     Integer level = r.getLevelPohon();
-                    return levelPohonPegawai == 0 || (level != null && level == levelPohonPegawai);
+                    if (level == null) {
+                        return false;
+                    }
+                    int levelAtasan = level - 1;
+                    return levelPohonPegawai == 0
+                            || level == levelPohonPegawai
+                            || level == (levelPohonPegawai - 1);
                 })
                 .map(RekinOpdByTahunResDTO.RencanaKinerja::getIdRencanaKinerja)
                 .toList();
@@ -635,14 +641,14 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
                                 if (a != null) {
                                     var programKegiatanAtasan = programKegiatanSubkegiatan.get(a.getIdRencanaKinerja());
-                                    List<RencanaKinerjaResDTO.Program> programsAtaasan = new ArrayList<>();
+                                    List<RencanaKinerjaResDTO.Program> programsAtasan = new ArrayList<>();
                                     List<RencanaKinerjaResDTO.Kegiatan> kegiatansAtasan = new ArrayList<>();
                                     List<RencanaKinerjaResDTO.SubKegiatan> subkegiatansAtasan = new ArrayList<>();
 
                                     if (programKegiatanAtasan != null) {
                                         for (Object obj : programKegiatanAtasan) {
                                             if (obj instanceof DetailRekinPegawaiResDTO.Program p) {
-                                                programsAtaasan.add(mapProgram(p));
+                                                programsAtasan.add(mapProgram(p));
                                             } else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) {
                                                 kegiatansAtasan.add(mapKegiatan(k));
                                             } else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) {
@@ -664,7 +670,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                             .target(a.getTarget())
                                             .satuan(a.getSatuan())
                                             .paguAnggaranTotal(paguAtasan)
-                                            .programs(programsAtaasan)
+                                            .programs(programsAtasan)
                                             .kegiatans(kegiatansAtasan)
                                             .subkegiatans(subkegiatansAtasan)
                                             .build();
