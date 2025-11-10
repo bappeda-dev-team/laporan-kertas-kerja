@@ -33,9 +33,9 @@ public class RencanaKinerjaResDTO {
         private String tahun;
         private String status_rencana_kinerja;
         private List<Map<String, Object>> indikator;
-        private List<Program> programs;
-        private List<Kegiatan> kegiatans;
-        private List<SubKegiatan> subkegiatans;
+        private List<RencanaKinerjaResDTO.Program> programs;
+        private List<RencanaKinerjaResDTO.Kegiatan> kegiatans;
+        private List<RencanaKinerjaResDTO.SubKegiatan> subkegiatans;
         private RencanaKinerjaAtasanDTO rencana_kinerja_atasan;
     }
 
@@ -87,6 +87,9 @@ public class RencanaKinerjaResDTO {
         private String target;
         private String satuan;
         private String status_rencana_kinerja;
+        private List<Program> programs;
+        private List<Kegiatan> kegiatans;
+        private List<SubKegiatan> subkegiatans;
     }
 
     @Data

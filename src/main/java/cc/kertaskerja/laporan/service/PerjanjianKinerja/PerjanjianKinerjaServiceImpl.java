@@ -602,17 +602,41 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                     }
                                 }
 
-                                var atasanDTO = a == null ? null : RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
-                                        .nama(a.getNama())
-                                        .id_rencana_kinerja(a.getIdRencanaKinerja())
-                                        .nama_rencana_kinerja(a.getNamaRencanaKinerja())
-                                        .kode_program(a.getKodeProgram())
-                                        .program(a.getProgram())
-                                        .pagu_anggaran(a.getPaguAnggaran())
-                                        .indikator(a.getIndikator())
-                                        .target(a.getTarget())
-                                        .satuan(a.getSatuan())
-                                        .build();
+                                RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO = null;
+
+                                if (a != null) {
+                                    var programKegiatanAtasan = programKegiatanSubkegiatan.get(a.getIdRencanaKinerja());
+                                    List<RencanaKinerjaResDTO.Program> programsAtaasan = new ArrayList<>();
+                                    List<RencanaKinerjaResDTO.Kegiatan> kegiatansAtasan = new ArrayList<>();
+                                    List<RencanaKinerjaResDTO.SubKegiatan> subkegiatansAtasan = new ArrayList<>();
+
+                                    if (programKegiatanAtasan != null) {
+                                        for (Object obj : programKegiatanAtasan) {
+                                            if (obj instanceof DetailRekinPegawaiResDTO.Program p) {
+                                                programsAtaasan.add(mapProgram(p));
+                                            } else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) {
+                                                kegiatansAtasan.add(mapKegiatan(k));
+                                            } else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) {
+                                                subkegiatansAtasan.add(mapSubKegiatan(s));
+                                            }
+                                        }
+                                    }
+
+                                    atasanDTO = RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
+                                            .nama(a.getNama())
+                                            .id_rencana_kinerja(a.getIdRencanaKinerja())
+                                            .nama_rencana_kinerja(a.getNamaRencanaKinerja())
+                                            .kode_program(a.getKodeProgram())
+                                            .program(a.getProgram())
+                                            .pagu_anggaran(a.getPaguAnggaran())
+                                            .indikator(a.getIndikator())
+                                            .target(a.getTarget())
+                                            .satuan(a.getSatuan())
+                                            .programs(programsAtaasan)
+                                            .kegiatans(kegiatansAtasan)
+                                            .subkegiatans(subkegiatansAtasan)
+                                            .build();
+                                }
 
                                 return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
                                         .id(Optional.ofNullable(a)
