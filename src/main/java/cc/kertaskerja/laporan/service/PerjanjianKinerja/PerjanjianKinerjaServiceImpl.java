@@ -497,6 +497,28 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 })
                 .toList();
 
+        Map<String, Long> totalPagu = detailRekins.getData().stream()
+                .filter(Objects::nonNull)
+                .flatMap(dataItem -> {
+                    List<String> idRekins = Optional.ofNullable(dataItem.getRencanaKinerja())
+                            .orElse(Collections.emptyList())
+                            .stream()
+                            .map(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja)
+                            .filter(Objects::nonNull)
+                            .toList();
+
+                    Long paguAnggaran = dataItem.getPaguAnggaranTotal();
+
+                    return idRekins.stream()
+                            .map(id -> Map.entry(id, paguAnggaran));
+
+                })
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue
+                ));
+
+
         Map<String, List<Object>> programKegiatanSubkegiatan = detailRekins.getData().stream()
                 .filter(Objects::nonNull)
                 .flatMap(dataItem -> {
@@ -585,6 +607,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                 String idRekin = rk.getIdRencanaKinerja();
                                 RencanaKinerjaAtasan a = atasanByBawahan.get(idRekin);
 
+                                var paguBawahan = totalPagu.get(idRekin);
                                 var myProgramKegiatanSubkegiatan = programKegiatanSubkegiatan.get(idRekin);
                                 List<RencanaKinerjaResDTO.Program> programs = new ArrayList<>();
                                 List<RencanaKinerjaResDTO.Kegiatan> kegiatans = new ArrayList<>();
@@ -622,6 +645,8 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                         }
                                     }
 
+                                    var paguAtasan = totalPagu.get(a.getIdRencanaKinerja());
+
                                     atasanDTO = RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
                                             .nama(a.getNama())
                                             .id_rencana_kinerja(a.getIdRencanaKinerja())
@@ -632,6 +657,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                             .indikator(a.getIndikator())
                                             .target(a.getTarget())
                                             .satuan(a.getSatuan())
+                                            .paguAnggaranTotal(paguAtasan)
                                             .programs(programsAtaasan)
                                             .kegiatans(kegiatansAtasan)
                                             .subkegiatans(subkegiatansAtasan)
@@ -649,6 +675,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                         .nama_rencana_kinerja(rk.getNamaRencanaKinerja())
                                         .tahun(rk.getTahun())
                                         .status_rencana_kinerja("-")
+                                        .paguAnggaranTotal(paguBawahan)
                                         .rencana_kinerja_atasan(atasanDTO)
                                         .programs(programs)
                                         .kegiatans(kegiatans)

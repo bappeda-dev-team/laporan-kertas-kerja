@@ -37,6 +37,7 @@ public class RencanaKinerjaResDTO {
         private List<RencanaKinerjaResDTO.Kegiatan> kegiatans;
         private List<RencanaKinerjaResDTO.SubKegiatan> subkegiatans;
         private RencanaKinerjaAtasanDTO rencana_kinerja_atasan;
+        private Long paguAnggaranTotal;
     }
 
     @Data
@@ -90,6 +91,7 @@ public class RencanaKinerjaResDTO {
         private List<Program> programs;
         private List<Kegiatan> kegiatans;
         private List<SubKegiatan> subkegiatans;
+        private Long paguAnggaranTotal;
     }
 
     @Data
