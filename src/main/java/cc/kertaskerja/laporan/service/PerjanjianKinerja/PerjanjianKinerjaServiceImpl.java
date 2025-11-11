@@ -527,7 +527,8 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 })
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        Map.Entry::getValue
+                        Map.Entry::getValue,
+                        (existing, duplicate) -> existing
                 ));
 
 
