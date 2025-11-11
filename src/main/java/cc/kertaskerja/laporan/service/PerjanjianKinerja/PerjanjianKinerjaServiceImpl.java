@@ -56,7 +56,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .collect(Collectors.toMap(
                         v -> Crypto.decrypt(v.getNip()),
                         v -> v,
-                        (v1, v2) -> v1 // 🧩 fix duplicate key error
+                        (v1, v2) -> v1
                 ));
 
         Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanRepository.findAll().stream()
@@ -507,6 +507,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
                     return rk.stream();
                 })
+                .distinct()
                 .toList();
 
         Map<String, Long> totalPagu = detailRekins.getData().stream()
