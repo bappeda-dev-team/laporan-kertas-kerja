@@ -6,7 +6,9 @@ import cc.kertaskerja.laporan.service.external.DetailRekinResponseDTO;
 import cc.kertaskerja.laporan.service.external.RekinFromPokinResponseDTO;
 import cc.kertaskerja.laporan.utils.HttpClient;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,11 +21,14 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class RencanaKinerjaService {
 
     private final HttpClient httpClient;
     private final RestTemplate restTemplate;
+    private final RedisService redisService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${external.rekin.base-url}")
     @SuppressWarnings("unused")
@@ -36,20 +41,52 @@ public class RencanaKinerjaService {
     }
 
     public RekinOpdByTahunResDTO findAllRekinOpdByTahun(String sessionId, String kodeOpd, String tahun) {
+        String cacheKey = "rekin:opd:%s:%s".formatted(kodeOpd, tahun);
         String url = String.format("%s/api_internal/rencana_kinerja/findall?kode_opd=%s&tahun=%s", rekinBaseUrl, kodeOpd, tahun);
+
+        // cek redis
+        String cachedJson = redisService.getRekinResponse(cacheKey);
+        if (cachedJson != null) {
+            try {
+                RekinOpdByTahunResDTO cached = objectMapper.readValue(cachedJson, RekinOpdByTahunResDTO.class);
+                log.info("✅ [CACHE HIT] findAllRekinOpdByTahun -> {}", cacheKey);
+                return cached;
+            } catch (Exception e) {
+                log.warn("⚠️ Gagal parse cache rekin OPD {}", cacheKey, e);
+            }
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Session-Id", sessionId);
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        long start = System.currentTimeMillis();
         ResponseEntity<RekinOpdByTahunResDTO> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
                 RekinOpdByTahunResDTO.class
         );
+        long duration = System.currentTimeMillis() - start;
+        log.info("🌐 [API FETCH] findAllRekinOpdByTahun ({} ms)", duration);
 
-        return response.getBody();
+        // hasil
+        RekinOpdByTahunResDTO body = response.getBody();
+        if (body == null) {
+            log.warn("⚠️ Response kosong dari API rekin OPD {}", url);
+            return new RekinOpdByTahunResDTO();
+        }
+
+        // simpan ke redis
+        try {
+            redisService.saveRekinResponse(cacheKey, objectMapper.writeValueAsString(body));
+            log.info("💾 [CACHE STORE] rekin OPD -> {}", cacheKey);
+        } catch (Exception e) {
+            log.error("❌ Gagal simpan cache rekin OPD {}", cacheKey, e);
+        }
+
+        return body;
     }
 
     private record DetailRekinsRequest(
@@ -58,7 +95,23 @@ public class RencanaKinerjaService {
     ) {}
 
     public DetailRekinPegawaiResDTO detailRekins(String sessionId, List<String> rekinIds) {
+        if (rekinIds == null || rekinIds.isEmpty()) return new DetailRekinPegawaiResDTO();
+
+        String idsHash = Integer.toHexString(String.join(",", rekinIds).hashCode());
+        String cacheKey = "rekin:detail:%s".formatted(idsHash);
         String url = String.format("%s/cascading_opd/findbymultiplerekin", rekinBaseUrl);
+
+        // cek cache
+        String cachedJson = redisService.getRekinResponse(cacheKey);
+        if (cachedJson != null) {
+            try {
+                DetailRekinPegawaiResDTO cached = objectMapper.readValue(cachedJson, DetailRekinPegawaiResDTO.class);
+                log.info("✅ [CACHE HIT] detailRekins -> {}", cacheKey);
+                return cached;
+            } catch (Exception e) {
+                log.warn("⚠️ Gagal parse cache detailRekins {}", cacheKey, e);
+            }
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
@@ -67,14 +120,31 @@ public class RencanaKinerjaService {
         DetailRekinsRequest requestBody = new DetailRekinsRequest(rekinIds);
 
         HttpEntity<DetailRekinsRequest> entity = new HttpEntity<>(requestBody, headers);
+
+        long start = System.currentTimeMillis();
         ResponseEntity<DetailRekinPegawaiResDTO> response = restTemplate.exchange(
                 url,
                 HttpMethod.POST,
                 entity,
                 DetailRekinPegawaiResDTO.class
         );
+        long duration = System.currentTimeMillis() - start;
+        log.info("🌐 [API FETCH] detailRekins ({} ms, {} ids)", duration, rekinIds.size());
 
-        return response.getBody();
+        DetailRekinPegawaiResDTO body = response.getBody();
+        if (body == null) {
+            log.warn("⚠️ Response kosong dari API detailRekins {}", url);
+            return new DetailRekinPegawaiResDTO();
+        }
+
+        try {
+            redisService.saveRekinResponse(cacheKey, objectMapper.writeValueAsString(body));
+            log.info("💾 [CACHE STORE] detailRekins -> {}", cacheKey);
+        } catch (Exception e) {
+            log.error("❌ Gagal simpan cache detailRekins {}", cacheKey, e);
+        }
+
+        return body;
     }
 
     public Map<String, Object> getDetailRencanaKinerjaByNIP(String sessionId, String nip, String tahun) {
@@ -119,5 +189,11 @@ public class RencanaKinerjaService {
         //headers.setBearerAuth(accessTokenService.getAccessToken());
         headers.set("X-Session-Id", sessionId);
         return httpClient.get(url, headers, Map.class);
+    }
+
+    public void evictRekinCache(String kodeOpd, String tahun) {
+        String keyOpd = "rekin:opd:%s:%s".formatted(kodeOpd, tahun);
+        redisService.deleteRekinResponse(keyOpd);
+        log.info("🗑️ Cache dihapus untuk key {}", keyOpd);
     }
 }
