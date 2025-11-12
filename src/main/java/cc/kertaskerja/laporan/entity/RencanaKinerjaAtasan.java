@@ -75,4 +75,10 @@ public class RencanaKinerjaAtasan {
 
     @Column(name = "status_rencana_kinerja", length = 50)
     private String statusRencanaKinerja;
+
+    @Column(name = "kode_opd")
+    private String kodeOpd;
+
+    @Column(name = "tahun")
+    private Integer tahun;
 }

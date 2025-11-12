@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -460,59 +461,60 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
 
     @Override
     public List<RencanaKinerjaResDTO> getAllRencanaKinerjaOpd(String sessionId, String kodeOpd, String tahun, String levelPegawai) {
-        // guard level pegawai
-        int tempLevel;
-        try {
-            tempLevel = (levelPegawai == null || levelPegawai.isBlank())
-                    ? 0
-                    : Integer.parseInt(levelPegawai);
-        } catch (NumberFormatException ex) {
-            tempLevel = 0;
-        }
-        final int levelPohonPegawai = tempLevel;
+        // --- 1️⃣ Parsing level pegawai aman dan ringkas
+        int levelPohonPegawai = Optional.ofNullable(levelPegawai)
+                .filter(s -> !s.isBlank())
+                .map(s -> {
+                    try {
+                        return Integer.parseInt(s);
+                    } catch (NumberFormatException e) {
+                        return 0;
+                    }
+                }).orElse(0);
 
-        // get rekin from api perencanan
+        // --- 2️⃣ Ambil data utama
         RekinOpdByTahunResDTO rekinApiPerencanaan = rencanaKinerjaService.findAllRekinOpdByTahun(sessionId, kodeOpd, tahun);
-
         if (rekinApiPerencanaan == null || rekinApiPerencanaan.getRencanaKinerja() == null) {
             return Collections.emptyList();
         }
 
-        // kumpulkan rekin id
+        // --- 3️⃣ Filter dan kumpulkan id rekin sesuai level pohon
         List<String> rekinIds = rekinApiPerencanaan.getRencanaKinerja().stream()
                 .filter(Objects::nonNull)
                 .filter(r -> {
-                    Integer level = r.getLevelPohon();
-                    if (level == null) {
-                        return false;
-                    }
-                    int levelAtasan = level - 1;
-                    return levelPohonPegawai == 0
-                            || level == levelPohonPegawai
-                            || level == (levelPohonPegawai - 1);
+                    Integer lvl = r.getLevelPohon();
+                    return lvl != null && (levelPohonPegawai == 0 || lvl == levelPohonPegawai || lvl == (levelPohonPegawai - 1));
                 })
                 .map(RekinOpdByTahunResDTO.RencanaKinerja::getIdRencanaKinerja)
+                .sorted() // urutkan agar hasil stabil
                 .toList();
 
-        // get detail rekin
+        if (rekinIds.isEmpty()) return Collections.emptyList();
+
+        // --- 4️⃣ Detail rekin
         DetailRekinPegawaiResDTO detailRekins = rencanaKinerjaService.detailRekins(sessionId, rekinIds);
-        List<DetailRekinPegawaiResDTO.RencanaKinerja> rekinDetails = detailRekins.getData().stream()
-                .filter(Objects::nonNull)
-                .flatMap(dataItem -> {
-                    List<DetailRekinPegawaiResDTO.RencanaKinerja> rk = Optional.ofNullable(dataItem.getRencanaKinerja())
-                            .orElse(Collections.emptyList())
-                            .stream()
-                            .peek(rl -> rl.setLevelPohon(dataItem.getLevelPohon()))
-                            .toList();
+        if (detailRekins == null || detailRekins.getData() == null) return Collections.emptyList();
 
-                    return rk.stream();
-                })
+        // --- 5️⃣ Flatten detail rekin dan set level
+        List<DetailRekinPegawaiResDTO.RencanaKinerja> rekinDetails = detailRekins.getData().parallelStream()
+                .filter(Objects::nonNull)
+                .flatMap(dataItem -> Optional.ofNullable(dataItem.getRencanaKinerja())
+                        .orElse(Collections.emptyList())
+                        .stream()
+                        .peek(rl -> rl.setLevelPohon(dataItem.getLevelPohon())))
                 .distinct()
+                .sorted(Comparator.comparing(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja))
                 .toList();
 
-        Map<String, Long> totalPagu = detailRekins.getData().stream()
+        if (rekinDetails.isEmpty()) return Collections.emptyList();
+
+        // --- 6️⃣ Proses total pagu dan program-kegiatan-subkegiatan dalam SATU PASS
+        Map<String, Long> totalPagu = new ConcurrentHashMap<>();
+        Map<String, List<Object>> programKegiatanSubkegiatan = new ConcurrentHashMap<>();
+
+        detailRekins.getData().parallelStream()
                 .filter(Objects::nonNull)
-                .flatMap(dataItem -> {
+                .forEach(dataItem -> {
                     List<String> idRekins = Optional.ofNullable(dataItem.getRencanaKinerja())
                             .orElse(Collections.emptyList())
                             .stream()
@@ -520,146 +522,100 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                             .filter(Objects::nonNull)
                             .toList();
 
-                    Long paguAnggaran = dataItem.getPaguAnggaranTotal();
-
-                    return idRekins.stream()
-                            .map(id -> Map.entry(id, paguAnggaran));
-
-                })
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (existing, duplicate) -> existing
-                ));
-
-
-        Map<String, List<Object>> programKegiatanSubkegiatan = detailRekins.getData().stream()
-                .filter(Objects::nonNull)
-                .flatMap(dataItem -> {
-                    // Semua idRencanaKinerja yang ada di dataItem
-                    List<String> idRekins = Optional.ofNullable(dataItem.getRencanaKinerja())
-                            .orElse(Collections.emptyList())
-                            .stream()
-                            .map(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja)
+                    Long pagu = dataItem.getPaguAnggaranTotal();
+                    List<Object> allItems = Collections.singletonList(Stream.of(
+                                    dataItem.getProgram(),
+                                    dataItem.getKegiatan(),
+                                    dataItem.getSubKegiatan())
                             .filter(Objects::nonNull)
-                            .toList();
-
-                    // Gabungkan program, kegiatan, subkegiatan
-                    List<Object> allItems = Stream.of(
-                                    Optional.ofNullable(dataItem.getProgram()).orElse(Collections.emptyList()),
-                                    Optional.ofNullable(dataItem.getKegiatan()).orElse(Collections.emptyList()),
-                                    Optional.ofNullable(dataItem.getSubKegiatan()).orElse(Collections.emptyList())
-                            )
                             .flatMap(List::stream)
-                            .collect(Collectors.toList());
+                            .toList());
 
-                    // Setiap idRencanaKinerja -> list yang sama (karena satu pohon punya banyak id)
-                    return idRekins.stream()
-                            .map(id -> Map.entry(id, allItems));
-                })
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        // Merge kalau ada key yang sama (gabungkan list-nya)
-                        (list1, list2) -> {
-                            List<Object> merged = new ArrayList<>(list1);
-                            merged.addAll(list2);
-                            return merged;
-                        }
-                ));
+                    for (String id : idRekins) {
+                        totalPagu.putIfAbsent(id, pagu);
+                        programKegiatanSubkegiatan.computeIfAbsent(id, k -> new ArrayList<>()).addAll(allItems);
+                    }
+                });
 
-
-        // sebelah kanan
-        Map<String, Verifikator> verifikatorByNip = verifikatorRepository.findAll().stream()
+        int tahunInt = Integer.parseInt(tahun);
+        // --- 7️⃣ Ambil data referensi repository (sudah filtered by tahun dan kode opd)
+        Map<String, Verifikator> verifikatorByNip = verifikatorRepository.findAllByKodeOpdAndTahunVerifikasi(kodeOpd, tahunInt).stream()
                 .collect(Collectors.toMap(
                         v -> Crypto.decrypt(v.getNip()),
                         v -> v,
-                        (v1, v2) -> v1 // 🧩 fix duplicate key error
-                ));
+                        (v1, v2) -> v1));
 
-        // sebelah kiri
-        Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanRepository.findAll().stream()
+        Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanRepository.findAllByKodeOpdAndTahun(kodeOpd, tahunInt).stream()
                 .collect(Collectors.toMap(
                         RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan,
                         a -> a,
-                        (a1, a2) -> a1
-                ));
+                        (a1, a2) -> a1));
 
-        // empty if rekinDetails kosong :(
-        if (rekinDetails.isEmpty()) {
-            return Collections.emptyList();
-        }
+        // --- 8️⃣ Data dasar opd (hindari repeated getFirst())
+        var firstRekin = rekinApiPerencanaan.getRencanaKinerja().getFirst();
+        String kode_opd = firstRekin.getOperasionalDaerah().getKodeOpd();
+        String nama_opd = firstRekin.getOperasionalDaerah().getNamaOpd();
 
-        return rekinDetails.stream()
-                .filter(Objects::nonNull)
+        // --- 9️⃣ Group by pegawai
+        Map<String, List<DetailRekinPegawaiResDTO.RencanaKinerja>> grouped = rekinDetails.parallelStream()
                 .filter(rk -> rk.getPegawaiId() != null)
-                .collect(Collectors.groupingBy(DetailRekinPegawaiResDTO.RencanaKinerja::getPegawaiId))
-                .entrySet().stream()
-                .map(e -> {
-                    // nip
-                    String nip = e.getKey();
-                    String nama = e.getValue().getFirst().getNamaPegawai();
-                    // opd
-                    String kode_opd = rekinApiPerencanaan.getRencanaKinerja().getFirst().getOperasionalDaerah().getKodeOpd();
-                    String nama_opd = rekinApiPerencanaan.getRencanaKinerja().getFirst().getOperasionalDaerah().getNamaOpd();
+                .collect(Collectors.groupingByConcurrent(DetailRekinPegawaiResDTO.RencanaKinerja::getPegawaiId));
+
+        // --- 🔟 Build final result
+        return grouped.entrySet().parallelStream()
+                .sorted(Map.Entry.comparingByKey()) // urut berdasarkan pegawai id agar stabil
+                .map(entry -> {
+                    String nip = entry.getKey();
+                    List<DetailRekinPegawaiResDTO.RencanaKinerja> rkList = entry.getValue();
+
+                    if (rkList.isEmpty()) return null;
+
+                    String nama = rkList.getFirst().getNamaPegawai();
                     Verifikator v = verifikatorByNip.get(nip);
 
-                    RencanaKinerjaResDTO.VerifikatorDTO verifikator = v == null ? null : RencanaKinerjaResDTO.VerifikatorDTO.builder()
-                            .kode_opd(v.getKodeOpd())
-                            .nama_opd(v.getNamaOpd())
-                            .nip(v.getNip())
-                            .nama_atasan(v.getNamaAtasan())
-                            .nip_atasan(v.getNipAtasan())
-                            .level_pegawai(v.getLevelPegawai())
-                            .status(v.getStatus().name())
-                            .tahun_verifikasi(v.getTahunVerifikasi())
-                            .build();
+                    RencanaKinerjaResDTO.VerifikatorDTO verifikator = (v == null) ? null :
+                            RencanaKinerjaResDTO.VerifikatorDTO.builder()
+                                    .kode_opd(v.getKodeOpd())
+                                    .nama_opd(v.getNamaOpd())
+                                    .nip(v.getNip())
+                                    .nama_atasan(v.getNamaAtasan())
+                                    .nip_atasan(v.getNipAtasan())
+                                    .level_pegawai(v.getLevelPegawai())
+                                    .status(v.getStatus().name())
+                                    .tahun_verifikasi(v.getTahunVerifikasi())
+                                    .build();
 
-                    // rencana kinerja
-                    List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> rencanaKinerjaDetails = e.getValue().stream()
+                    List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> detailList = rkList.stream()
+                            .sorted(Comparator.comparing(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja))
                             .map(rk -> {
                                 String idRekin = rk.getIdRencanaKinerja();
                                 RencanaKinerjaAtasan a = atasanByBawahan.get(idRekin);
 
-                                var paguBawahan = totalPagu.get(idRekin);
-                                var myProgramKegiatanSubkegiatan = programKegiatanSubkegiatan.get(idRekin);
+                                Long paguBawahan = totalPagu.get(idRekin);
+                                List<Object> items = programKegiatanSubkegiatan.getOrDefault(idRekin, List.of());
+
+                                // pisahkan type item
                                 List<RencanaKinerjaResDTO.Program> programs = new ArrayList<>();
                                 List<RencanaKinerjaResDTO.Kegiatan> kegiatans = new ArrayList<>();
                                 List<RencanaKinerjaResDTO.SubKegiatan> subkegiatans = new ArrayList<>();
-
-                                if (myProgramKegiatanSubkegiatan != null) {
-                                    for (Object obj : myProgramKegiatanSubkegiatan) {
-                                        if (obj instanceof DetailRekinPegawaiResDTO.Program p) {
-                                            programs.add(mapProgram(p));
-                                        } else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) {
-                                            kegiatans.add(mapKegiatan(k));
-                                        } else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) {
-                                            subkegiatans.add(mapSubKegiatan(s));
-                                        }
-                                    }
+                                for (Object obj : items) {
+                                    if (obj instanceof DetailRekinPegawaiResDTO.Program p) programs.add(mapProgram(p));
+                                    else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) kegiatans.add(mapKegiatan(k));
+                                    else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) subkegiatans.add(mapSubKegiatan(s));
                                 }
 
+                                // mapping atasan (jika ada)
                                 RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO = null;
-
                                 if (a != null) {
-                                    var programKegiatanAtasan = programKegiatanSubkegiatan.get(a.getIdRencanaKinerja());
-                                    List<RencanaKinerjaResDTO.Program> programsAtasan = new ArrayList<>();
-                                    List<RencanaKinerjaResDTO.Kegiatan> kegiatansAtasan = new ArrayList<>();
-                                    List<RencanaKinerjaResDTO.SubKegiatan> subkegiatansAtasan = new ArrayList<>();
-
-                                    if (programKegiatanAtasan != null) {
-                                        for (Object obj : programKegiatanAtasan) {
-                                            if (obj instanceof DetailRekinPegawaiResDTO.Program p) {
-                                                programsAtasan.add(mapProgram(p));
-                                            } else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) {
-                                                kegiatansAtasan.add(mapKegiatan(k));
-                                            } else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) {
-                                                subkegiatansAtasan.add(mapSubKegiatan(s));
-                                            }
-                                        }
+                                    var itemsAtasan = programKegiatanSubkegiatan.getOrDefault(a.getIdRencanaKinerja(), List.of());
+                                    List<RencanaKinerjaResDTO.Program> progsA = new ArrayList<>();
+                                    List<RencanaKinerjaResDTO.Kegiatan> kegsA = new ArrayList<>();
+                                    List<RencanaKinerjaResDTO.SubKegiatan> subsA = new ArrayList<>();
+                                    for (Object obj : itemsAtasan) {
+                                        if (obj instanceof DetailRekinPegawaiResDTO.Program p) progsA.add(mapProgram(p));
+                                        else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) kegsA.add(mapKegiatan(k));
+                                        else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) subsA.add(mapSubKegiatan(s));
                                     }
-
-                                    var paguAtasan = totalPagu.get(a.getIdRencanaKinerja());
 
                                     atasanDTO = RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
                                             .nama(a.getNama())
@@ -671,17 +627,15 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                             .indikator(a.getIndikator())
                                             .target(a.getTarget())
                                             .satuan(a.getSatuan())
-                                            .paguAnggaranTotal(paguAtasan)
-                                            .programs(programsAtasan)
-                                            .kegiatans(kegiatansAtasan)
-                                            .subkegiatans(subkegiatansAtasan)
+                                            .paguAnggaranTotal(totalPagu.get(a.getIdRencanaKinerja()))
+                                            .programs(progsA)
+                                            .kegiatans(kegsA)
+                                            .subkegiatans(subsA)
                                             .build();
                                 }
 
                                 return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
-                                        .id(Optional.ofNullable(a)
-                                                .map(RencanaKinerjaAtasan::getId)
-                                                .orElse(null))
+                                        .id(Optional.ofNullable(a).map(RencanaKinerjaAtasan::getId).orElse(null))
                                         .id_rencana_kinerja(idRekin)
                                         .id_pohon(Math.toIntExact(rk.getIdPohon()))
                                         .nama_pohon(rk.getNamaPohon())
@@ -704,13 +658,13 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                             .nip(Crypto.encrypt(nip))
                             .nama(nama)
                             .verifikator(verifikator)
-                            .rencana_kinerja(rencanaKinerjaDetails)
+                            .rencana_kinerja(detailList)
                             .build();
-
-                    //List<DetailRekinPegawaiResDTO.RencanaKinerja> rks = e.getValue();
                 })
+                .filter(Objects::nonNull)
                 .toList();
     }
+
 
     private RencanaKinerjaResDTO.Program mapProgram(DetailRekinPegawaiResDTO.Program src) {
         RencanaKinerjaResDTO.Program p = new RencanaKinerjaResDTO.Program();
