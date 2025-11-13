@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StopWatch;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -466,19 +465,12 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
     public List<RencanaKinerjaResDTO> getAllRencanaKinerjaOpd(String sessionId, String kodeOpd, String tahun, String levelPegawai) {
         String cacheKey = "rencanaKinerjaOpd:%s:%s".formatted(kodeOpd, tahun);
 
-        StopWatch sw = new StopWatch();
-        sw.start("Check Redis cache");
-
-        // --- 🧠 Cek cache
+        // --- cek cache redis
         List<RencanaKinerjaResDTO> cached = redisService.getList(cacheKey, RencanaKinerjaResDTO.class);
         if (cached != null && !cached.isEmpty()) {
-            sw.stop();
-            log.info("✅ Data Rencana Kinerja OPD diambil dari cache Redis [{} ms]", sw.getTotalTimeMillis());
             return cached;
         }
-        sw.stop();
 
-        sw.start("Prepare & parse input");
         int levelPohonPegawai = Optional.ofNullable(levelPegawai)
                 .filter(s -> !s.isBlank())
                 .map(s -> {
@@ -488,16 +480,12 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                         return 0;
                     }
                 }).orElse(0);
-        sw.stop();
 
-        sw.start("Fetch Rencana Kinerja OPD");
         RekinOpdByTahunResDTO rekinApiPerencanaan = rencanaKinerjaService.findAllRekinOpdByTahun(sessionId, kodeOpd, tahun);
-        sw.stop();
 
         if (rekinApiPerencanaan == null || rekinApiPerencanaan.getRencanaKinerja() == null)
             return Collections.emptyList();
 
-        sw.start("Filter rekinIds");
         List<String> rekinIds = rekinApiPerencanaan.getRencanaKinerja().stream()
                 .filter(Objects::nonNull)
                 .filter(r -> {
@@ -507,17 +495,13 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .map(RekinOpdByTahunResDTO.RencanaKinerja::getIdRencanaKinerja)
                 .sorted()
                 .toList();
-        sw.stop();
 
         if (rekinIds.isEmpty()) return Collections.emptyList();
 
-        sw.start("Fetch Detail Rekin");
         DetailRekinPegawaiResDTO detailRekins = rencanaKinerjaService.detailRekins(sessionId, rekinIds);
-        sw.stop();
 
         if (detailRekins == null || detailRekins.getData() == null) return Collections.emptyList();
 
-        sw.start("Flatten detail rekin");
         List<DetailRekinPegawaiResDTO.RencanaKinerja> rekinDetails = detailRekins.getData().parallelStream()
                 .filter(Objects::nonNull)
                 .flatMap(dataItem -> Optional.ofNullable(dataItem.getRencanaKinerja())
@@ -527,11 +511,9 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .distinct()
                 .sorted(Comparator.comparing(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja))
                 .toList();
-        sw.stop();
 
         if (rekinDetails.isEmpty()) return Collections.emptyList();
 
-        sw.start("Process pagu & program-kegiatan");
         Map<String, Long> totalPagu = new ConcurrentHashMap<>();
         Map<String, List<Object>> programKegiatanSubkegiatan = new ConcurrentHashMap<>();
         detailRekins.getData().parallelStream()
@@ -545,24 +527,24 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                             .toList();
 
                     Long pagu = dataItem.getPaguAnggaranTotal();
-                    List<Object> allItems = Collections.singletonList(Stream.of(
+                    List<Object> allItems =
+                            Stream.of(
                                     dataItem.getProgram(),
                                     dataItem.getKegiatan(),
-                                    dataItem.getSubKegiatan())
+                                    dataItem.getSubKegiatan()
+                                    )
                             .filter(Objects::nonNull)
                             .flatMap(List::stream)
-                            .toList());
+                            .collect(Collectors.toList());
 
                     for (String id : idRekins) {
                         totalPagu.putIfAbsent(id, pagu);
                         programKegiatanSubkegiatan.computeIfAbsent(id, k -> new ArrayList<>()).addAll(allItems);
                     }
                 });
-        sw.stop();
 
         int tahunInt = Integer.parseInt(tahun);
 
-        sw.start("Fetch Verifikator & Atasan");
         Map<String, Verifikator> verifikatorByNip = verifikatorRepository.findAllByKodeOpdAndTahunVerifikasi(kodeOpd, tahunInt).stream()
                 .collect(Collectors.toMap(
                         v -> Crypto.decrypt(v.getNip()),
@@ -574,9 +556,6 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                         RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan,
                         a -> a,
                         (a1, a2) -> a1));
-        sw.stop();
-
-        sw.start("Group by pegawai & build result");
 
         var firstRekin = rekinApiPerencanaan.getRencanaKinerja().getFirst();
         String kode_opd = firstRekin.getOperasionalDaerah().getKodeOpd();
@@ -624,17 +603,8 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 })
                 .filter(Objects::nonNull)
                 .toList();
-        sw.stop();
 
-        sw.start("Save to Redis");
         redisService.saveObject(cacheKey, result); // TTL default 60 menit
-        sw.stop();
-
-        log.info("""
-        ✅ Profiling getAllRencanaKinerjaOpd:
-        {}
-        Total time: {} ms
-        """, sw.prettyPrint(), sw.getTotalTimeMillis());
 
         return result;
     }
