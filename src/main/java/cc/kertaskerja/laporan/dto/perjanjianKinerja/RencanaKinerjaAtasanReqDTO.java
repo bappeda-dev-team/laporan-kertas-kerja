@@ -72,4 +72,10 @@ public class RencanaKinerjaAtasanReqDTO {
 
     @JsonProperty("pagu_anggaran")
     private Integer pagu_anggaran;
+
+    @JsonProperty("kode_opd")
+    private String kode_opd;
+
+    @JsonProperty("tahun")
+    private Integer tahun;
 }

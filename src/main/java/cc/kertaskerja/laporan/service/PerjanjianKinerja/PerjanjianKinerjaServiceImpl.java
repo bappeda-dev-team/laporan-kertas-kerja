@@ -396,6 +396,8 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .target("-")
                 .satuan("-")
                 .statusRencanaKinerja(statusRencanaKinerja)
+                .kodeOpd(dto.getKode_opd())
+                .tahun(dto.getTahun())
                 .build();
 
         return rekinAtasanRepository.save(rekinAtasan);
@@ -493,14 +495,10 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                     return lvl != null && (levelPohonPegawai == 0 || lvl == levelPohonPegawai || lvl == (levelPohonPegawai - 1));
                 })
                 .map(RekinOpdByTahunResDTO.RencanaKinerja::getIdRencanaKinerja)
-                .sorted()
                 .toList();
 
-        if (rekinIds.isEmpty()) return Collections.emptyList();
-
+        // detail rekin, batch
         DetailRekinPegawaiResDTO detailRekins = rencanaKinerjaService.detailRekins(sessionId, rekinIds);
-
-        if (detailRekins == null || detailRekins.getData() == null) return Collections.emptyList();
 
         List<DetailRekinPegawaiResDTO.RencanaKinerja> rekinDetails = detailRekins.getData().parallelStream()
                 .filter(Objects::nonNull)
@@ -509,16 +507,11 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                         .stream()
                         .peek(rl -> rl.setLevelPohon(dataItem.getLevelPohon())))
                 .distinct()
-                .sorted(Comparator.comparing(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja))
                 .toList();
 
-        if (rekinDetails.isEmpty()) return Collections.emptyList();
-
-        Map<String, Long> totalPagu = new ConcurrentHashMap<>();
-        Map<String, List<Object>> programKegiatanSubkegiatan = new ConcurrentHashMap<>();
-        detailRekins.getData().parallelStream()
+        Map<String, Long> totalPagu = detailRekins.getData().stream()
                 .filter(Objects::nonNull)
-                .forEach(dataItem -> {
+                .flatMap(dataItem -> {
                     List<String> idRekins = Optional.ofNullable(dataItem.getRencanaKinerja())
                             .orElse(Collections.emptyList())
                             .stream()
@@ -526,22 +519,53 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                             .filter(Objects::nonNull)
                             .toList();
 
-                    Long pagu = dataItem.getPaguAnggaranTotal();
-                    List<Object> allItems =
-                            Stream.of(
-                                    dataItem.getProgram(),
-                                    dataItem.getKegiatan(),
-                                    dataItem.getSubKegiatan()
-                                    )
+                    Long paguAnggaran = dataItem.getPaguAnggaranTotal();
+
+                    return idRekins.stream()
+                            .map(id -> Map.entry(id, paguAnggaran));
+
+                })
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (existing, duplicate) -> existing
+                ));
+
+
+        Map<String, List<Object>> programKegiatanSubkegiatan = detailRekins.getData().stream()
+                .filter(Objects::nonNull)
+                .flatMap(dataItem -> {
+                    // Semua idRencanaKinerja yang ada di dataItem
+                    List<String> idRekins = Optional.ofNullable(dataItem.getRencanaKinerja())
+                            .orElse(Collections.emptyList())
+                            .stream()
+                            .map(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja)
                             .filter(Objects::nonNull)
+                            .toList();
+
+                    // Gabungkan program, kegiatan, subkegiatan
+                    List<Object> allItems = Stream.of(
+                                    Optional.ofNullable(dataItem.getProgram()).orElse(Collections.emptyList()),
+                                    Optional.ofNullable(dataItem.getKegiatan()).orElse(Collections.emptyList()),
+                                    Optional.ofNullable(dataItem.getSubKegiatan()).orElse(Collections.emptyList())
+                            )
                             .flatMap(List::stream)
                             .collect(Collectors.toList());
 
-                    for (String id : idRekins) {
-                        totalPagu.putIfAbsent(id, pagu);
-                        programKegiatanSubkegiatan.computeIfAbsent(id, k -> new ArrayList<>()).addAll(allItems);
-                    }
-                });
+                    // Setiap idRencanaKinerja -> list yang sama (karena satu pohon punya banyak id)
+                    return idRekins.stream()
+                            .map(id -> Map.entry(id, allItems));
+                })
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        // Merge kalau ada key yang sama (gabungkan list-nya)
+                        (list1, list2) -> {
+                            List<Object> merged = new ArrayList<>(list1);
+                            merged.addAll(list2);
+                            return merged;
+                        }
+                ));
 
         int tahunInt = Integer.parseInt(tahun);
 
