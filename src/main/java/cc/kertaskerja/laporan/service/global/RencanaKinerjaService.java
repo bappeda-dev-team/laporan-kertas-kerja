@@ -174,6 +174,10 @@ public class RencanaKinerjaService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Session-Id", sessionId);
 
+        String serviceToken = serviceTokenProvider.getToken();
+        headers.set("Authorization", "Bearer %s".formatted(serviceToken));
+
+
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<DetailRekinResponseDTO> response = restTemplate.exchange(url, HttpMethod.GET, entity, DetailRekinResponseDTO.class);
 
@@ -185,6 +189,9 @@ public class RencanaKinerjaService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Session-Id", sessionId);
+
+        String serviceToken = serviceTokenProvider.getToken();
+        headers.set("Authorization", "Bearer %s".formatted(serviceToken));
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
         ResponseEntity<RekinFromPokinResponseDTO> response = restTemplate.exchange(url, HttpMethod.GET, entity, RekinFromPokinResponseDTO.class);
@@ -199,6 +206,9 @@ public class RencanaKinerjaService {
         HttpHeaders headers = new HttpHeaders();
         //headers.setBearerAuth(accessTokenService.getAccessToken());
         headers.set("X-Session-Id", sessionId);
+        String serviceToken = serviceTokenProvider.getToken();
+        headers.set("Authorization", "Bearer %s".formatted(serviceToken));
+
         return httpClient.get(url, headers, Map.class);
     }
 
