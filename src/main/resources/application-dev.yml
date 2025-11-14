@@ -35,9 +35,9 @@ server:
 
 external:
   rekin:
-    base-url: https://api-semarang.kertaskerja.cc/api/v1/perencanaan
+    base-url: https://rekin-url.local
   kepegawaian:
-    base-url: https://api-semarang.kertaskerja.cc/api/v1/tpp
+    base-url: https://kepegawaian-url.local
 
 
 springdoc:
@@ -53,3 +53,10 @@ springdoc:
     disable-swagger-default-url: true
   override-with-generic-response: false
   show-actuator: true
+
+keycloak:
+  auth-server-url: http://auth.kertaskerja.local/auth
+  realm: LocalRealm
+  service-client:
+    client-id: laporan-service
+    client-secret: laporan-service-secret

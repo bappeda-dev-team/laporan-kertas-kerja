@@ -2,6 +2,7 @@ package cc.kertaskerja.laporan.service.global;
 
 import cc.kertaskerja.laporan.dto.global.DetailRekinPegawaiResDTO;
 import cc.kertaskerja.laporan.dto.global.RekinOpdByTahunResDTO;
+import cc.kertaskerja.laporan.security.ServiceTokenProvider;
 import cc.kertaskerja.laporan.service.external.DetailRekinResponseDTO;
 import cc.kertaskerja.laporan.service.external.RekinFromPokinResponseDTO;
 import cc.kertaskerja.laporan.utils.HttpClient;
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -29,6 +31,9 @@ public class RencanaKinerjaService {
     private final RestTemplate restTemplate;
     private final RedisService redisService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    private ServiceTokenProvider serviceTokenProvider;
 
     @Value("${external.rekin.base-url}")
     @SuppressWarnings("unused")
@@ -58,6 +63,9 @@ public class RencanaKinerjaService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Session-Id", sessionId);
+
+        String serviceToken = serviceTokenProvider.getToken();
+        headers.set("Authorization", "Bearer %s".formatted(serviceToken));
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
@@ -116,6 +124,9 @@ public class RencanaKinerjaService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         headers.set("X-Session-Id", sessionId);
+
+        String serviceToken = serviceTokenProvider.getToken();
+        headers.set("Authorization", "Bearer %s".formatted(serviceToken));
 
         DetailRekinsRequest requestBody = new DetailRekinsRequest(rekinIds);
 
