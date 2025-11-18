@@ -34,6 +34,7 @@ server:
     allow-encoded-slashes: true
 
 external:
+  pemda: KAB.XX
   rekin:
     base-url: https://rekin-url.local
   kepegawaian:

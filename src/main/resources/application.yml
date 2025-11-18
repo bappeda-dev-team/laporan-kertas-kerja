@@ -39,6 +39,7 @@ server:
     allow-encoded-slashes: true
 
 external:
+  pemda: KAB.XX
   rekin:
     base-url: http://kertaskerja.local/api/v1/perencanaan
 
