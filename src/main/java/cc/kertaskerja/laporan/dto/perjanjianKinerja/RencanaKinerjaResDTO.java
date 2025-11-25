@@ -27,7 +27,6 @@ public class RencanaKinerjaResDTO {
         private Long id;
         private String id_rencana_kinerja;
         private Integer id_pohon;
-        private String nama_pohon;
         private Integer level_pohon;
         private String nama_rencana_kinerja;
         private String tahun;

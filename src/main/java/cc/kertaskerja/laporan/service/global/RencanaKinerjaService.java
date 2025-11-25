@@ -47,7 +47,7 @@ public class RencanaKinerjaService {
 
     public RekinOpdByTahunResDTO findAllRekinOpdByTahun(String sessionId, String kodeOpd, String tahun) {
         String cacheKey = "rekin:opd:%s:%s".formatted(kodeOpd, tahun);
-        String url = String.format("%s/api_internal/rencana_kinerja/findall?kode_opd=%s&tahun=%s", rekinBaseUrl, kodeOpd, tahun);
+        String url = String.format("%s/cascading_opd/multi_rekin_detail_by_opd_and_tahun/%s/%s", rekinBaseUrl, kodeOpd, tahun);
 
         // cek redis
         String cachedJson = redisService.getRekinResponse(cacheKey);

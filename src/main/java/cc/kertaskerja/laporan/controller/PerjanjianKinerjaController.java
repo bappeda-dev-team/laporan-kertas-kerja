@@ -27,6 +27,7 @@ public class PerjanjianKinerjaController {
 
     private final PerjanjianKinerjaService pkService;
 
+    // target perbaikan
     @GetMapping("/get-all-rekin/{kodeOpd}/{tahun}")
     @Operation(summary = "Menampilkan semua data rencana kinerja by OPD")
     public ResponseEntity<ApiResponse<List<RencanaKinerjaResDTO>>> findAllRencanaKinerja(@RequestHeader("X-Session-Id") String sessionId,

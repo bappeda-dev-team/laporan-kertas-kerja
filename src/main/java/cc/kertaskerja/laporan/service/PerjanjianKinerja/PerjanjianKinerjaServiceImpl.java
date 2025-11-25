@@ -158,7 +158,6 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                         .orElse(null))
                 .id_rencana_kinerja(id)
                 .id_pohon((Integer) rk.get("id_pohon"))
-                .nama_pohon((String) rk.get("nama_pohon"))
                 .level_pohon((Integer) rk.get("level_pohon"))
                 .nama_rencana_kinerja((String) rk.get("nama_rencana_kinerja"))
                 .tahun((String) rk.get("tahun"))
@@ -269,7 +268,6 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                     return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
                             .id_rencana_kinerja((String) item.get("id_rencana_kinerja"))
                             .id_pohon((Integer) item.get("id_pohon"))
-                            .nama_pohon((String) item.get("nama_pohon"))
                             .level_pohon((Integer) item.get("level_pohon"))
                             .nama_rencana_kinerja((String) item.get("nama_rencana_kinerja"))
                             .tahun((String) item.get("tahun"))
@@ -463,266 +461,177 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         rekinAtasanRepository.deleteById(Long.parseLong(pkId));
     }
 
+    // target perbaikan
     @Override
-    public List<RencanaKinerjaResDTO> getAllRencanaKinerjaOpd(String sessionId, String kodeOpd, String tahun, String levelPegawai) {
+    public List<RencanaKinerjaResDTO> getAllRencanaKinerjaOpd(
+            String sessionId,
+            String kodeOpd,
+            String tahun,
+            String levelPegawai
+    ) {
+
         String cacheKey = "rencanaKinerjaOpd:%s:%s".formatted(kodeOpd, tahun);
 
-        // --- cek cache redis
+        // cek cache
         List<RencanaKinerjaResDTO> cached = redisService.getList(cacheKey, RencanaKinerjaResDTO.class);
         if (cached != null && !cached.isEmpty()) {
             return cached;
         }
 
-        int levelPohonPegawai = Optional.ofNullable(levelPegawai)
-                .filter(s -> !s.isBlank())
-                .map(s -> {
-                    try {
-                        return Integer.parseInt(s);
-                    } catch (NumberFormatException e) {
-                        return 0;
-                    }
-                }).orElse(0);
-
-        RekinOpdByTahunResDTO rekinApiPerencanaan = rencanaKinerjaService.findAllRekinOpdByTahun(sessionId, kodeOpd, tahun);
-
-        if (rekinApiPerencanaan == null || rekinApiPerencanaan.getRencanaKinerja() == null)
-            return Collections.emptyList();
-
-        List<String> rekinIds = rekinApiPerencanaan.getRencanaKinerja().stream()
-                .filter(Objects::nonNull)
-                .filter(r -> {
-                    Integer lvl = r.getLevelPohon();
-                    return lvl != null && (levelPohonPegawai == 0 || lvl == levelPohonPegawai || lvl == (levelPohonPegawai - 1));
-                })
-                .map(RekinOpdByTahunResDTO.RencanaKinerja::getIdRencanaKinerja)
-                .toList();
-
-        // detail rekin, batch
-        DetailRekinPegawaiResDTO detailRekins = rencanaKinerjaService.detailRekins(sessionId, rekinIds);
-
-        List<DetailRekinPegawaiResDTO.RencanaKinerja> rekinDetails = detailRekins.getData().parallelStream()
-                .filter(Objects::nonNull)
-                .flatMap(dataItem -> Optional.ofNullable(dataItem.getRencanaKinerja())
-                        .orElse(Collections.emptyList())
-                        .stream()
-                        .peek(rl -> rl.setLevelPohon(dataItem.getLevelPohon())))
-                .distinct()
-                .toList();
-
-        Map<String, Long> totalPagu = detailRekins.getData().stream()
-                .filter(Objects::nonNull)
-                .flatMap(dataItem -> {
-                    List<String> idRekins = Optional.ofNullable(dataItem.getRencanaKinerja())
-                            .orElse(Collections.emptyList())
-                            .stream()
-                            .map(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja)
-                            .filter(Objects::nonNull)
-                            .toList();
-
-                    Long paguAnggaran = dataItem.getPaguAnggaranTotal();
-
-                    return idRekins.stream()
-                            .map(id -> Map.entry(id, paguAnggaran));
-
-                })
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (existing, duplicate) -> existing
-                ));
-
-
-        Map<String, List<Object>> programKegiatanSubkegiatan = detailRekins.getData().stream()
-                .filter(Objects::nonNull)
-                .flatMap(dataItem -> {
-                    // Semua idRencanaKinerja yang ada di dataItem
-                    List<String> idRekins = Optional.ofNullable(dataItem.getRencanaKinerja())
-                            .orElse(Collections.emptyList())
-                            .stream()
-                            .map(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja)
-                            .filter(Objects::nonNull)
-                            .toList();
-
-                    // Gabungkan program, kegiatan, subkegiatan
-                    List<Object> allItems = Stream.of(
-                                    Optional.ofNullable(dataItem.getProgram()).orElse(Collections.emptyList()),
-                                    Optional.ofNullable(dataItem.getKegiatan()).orElse(Collections.emptyList()),
-                                    Optional.ofNullable(dataItem.getSubKegiatan()).orElse(Collections.emptyList())
-                            )
-                            .flatMap(List::stream)
-                            .collect(Collectors.toList());
-
-                    // Setiap idRencanaKinerja -> list yang sama (karena satu pohon punya banyak id)
-                    return idRekins.stream()
-                            .map(id -> Map.entry(id, allItems));
-                })
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        // Merge kalau ada key yang sama (gabungkan list-nya)
-                        (list1, list2) -> {
-                            List<Object> merged = new ArrayList<>(list1);
-                            merged.addAll(list2);
-                            return merged;
-                        }
-                ));
-
         int tahunInt = Integer.parseInt(tahun);
 
-        Map<String, Verifikator> verifikatorByNip = verifikatorRepository.findAllByKodeOpdAndTahunVerifikasi(kodeOpd, tahunInt).stream()
-                .collect(Collectors.toMap(
-                        v -> Crypto.decrypt(v.getNip()),
-                        v -> v,
-                        (v1, v2) -> v1));
+        // ========== 1. EXTERNAL API ==========
+        RekinOpdByTahunResDTO external =
+                rencanaKinerjaService.findAllRekinOpdByTahun(sessionId, kodeOpd, tahun);
 
-        Map<String, RencanaKinerjaAtasan> atasanByBawahan = rekinAtasanRepository.findAllByKodeOpdAndTahun(kodeOpd, tahunInt).stream()
-                .collect(Collectors.toMap(
-                        RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan,
-                        a -> a,
-                        (a1, a2) -> a1));
+        if (external == null || external.getData() == null)
+            return Collections.emptyList();
 
-        var firstRekin = rekinApiPerencanaan.getRencanaKinerja().getFirst();
-        String kode_opd = firstRekin.getOperasionalDaerah().getKodeOpd();
-        String nama_opd = firstRekin.getOperasionalDaerah().getNamaOpd();
+        List<RekinOpdByTahunResDTO.RencanaKinerja> externalList = external.getData();
+        if (externalList.isEmpty())
+            return Collections.emptyList();
 
-        Map<String, List<DetailRekinPegawaiResDTO.RencanaKinerja>> grouped = rekinDetails.parallelStream()
-                .filter(rk -> rk.getPegawaiId() != null)
-                .collect(Collectors.groupingByConcurrent(DetailRekinPegawaiResDTO.RencanaKinerja::getPegawaiId));
+        // ========== 2. INTERNAL: verifikator ==========
+        Map<String, Verifikator> verifikatorByNip =
+                verifikatorRepository.findAllByKodeOpdAndTahunVerifikasi(kodeOpd, tahunInt)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                v -> Crypto.decrypt(v.getNip()),
+                                v -> v,
+                                (v1, v2) -> v1
+                        ));
 
-        List<RencanaKinerjaResDTO> result = grouped.entrySet().parallelStream()
-                .sorted(Map.Entry.comparingByKey())
-                .map(entry -> {
-                    String nip = entry.getKey();
-                    List<DetailRekinPegawaiResDTO.RencanaKinerja> rkList = entry.getValue();
-                    if (rkList.isEmpty()) return null;
+        // ========== 3. INTERNAL: atasan ==========
+        Map<String, RencanaKinerjaAtasan> atasanMap =
+                rekinAtasanRepository.findAllByKodeOpdAndTahun(kodeOpd, tahunInt)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                RencanaKinerjaAtasan::getIdRencanaKinerjaBawahan,
+                                a -> a,
+                                (a1, a2) -> a1
+                        ));
 
-                    String nama = rkList.getFirst().getNamaPegawai();
-                    Verifikator v = verifikatorByNip.get(nip);
+        // ========== 4. Group external per pegawai ==========
+        Map<String, List<RekinOpdByTahunResDTO.RencanaKinerja>> grouped =
+                externalList.stream()
+                        .collect(Collectors.groupingBy(RekinOpdByTahunResDTO.RencanaKinerja::getPegawaiId));
 
-                    RencanaKinerjaResDTO.VerifikatorDTO verifikator = (v == null) ? null :
-                            RencanaKinerjaResDTO.VerifikatorDTO.builder()
-                                    .kode_opd(v.getKodeOpd())
-                                    .nama_opd(v.getNamaOpd())
-                                    .nip(v.getNip())
-                                    .nama_atasan(v.getNamaAtasan())
-                                    .nip_atasan(v.getNipAtasan())
-                                    .level_pegawai(v.getLevelPegawai())
-                                    .status(v.getStatus().name())
-                                    .tahun_verifikasi(v.getTahunVerifikasi())
-                                    .build();
+        // ========== 5. Build response ==========
+        List<RencanaKinerjaResDTO> result = new ArrayList<>();
 
-                    List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> detailList = rkList.stream()
-                            .sorted(Comparator.comparing(DetailRekinPegawaiResDTO.RencanaKinerja::getIdRencanaKinerja))
-                            .map(rk -> mapRencanaDetail(rk, atasanByBawahan, totalPagu, programKegiatanSubkegiatan))
-                            .toList();
+        for (var entry : grouped.entrySet()) {
+            String nip = entry.getKey();
+            List<RekinOpdByTahunResDTO.RencanaKinerja> rkList = entry.getValue();
 
-                    return RencanaKinerjaResDTO.builder()
-                            .kode_opd(kode_opd)
-                            .nama_opd(nama_opd)
-                            .nip(Crypto.encrypt(nip))
-                            .nama(nama)
-                            .verifikator(verifikator)
-                            .rencana_kinerja(detailList)
-                            .build();
-                })
-                .filter(Objects::nonNull)
-                .toList();
+            RekinOpdByTahunResDTO.RencanaKinerja first = rkList.get(0);
 
-        redisService.saveObject(cacheKey, result); // TTL default 60 menit
+            RencanaKinerjaResDTO dto = new RencanaKinerjaResDTO();
+            dto.setKode_opd(first.getKodeOpd());
+            dto.setNama_opd(first.getKodeOpd()); // jika nama OPD tersedia dari external, isi disini
+            dto.setNip(first.getPegawaiId());
+            dto.setNama(first.getNamaPegawai());
+
+            // set verifikator
+            dto.setVerifikator(toVerifikatorDTO(verifikatorByNip.get(nip)));
+
+            // detail list
+            List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> detailList = new ArrayList<>();
+
+            for (var ext : rkList) {
+                var det = new RencanaKinerjaResDTO.RencanaKinerjaDetailDTO();
+
+                det.setId_rencana_kinerja(ext.getIdRencanaKinerja());
+                det.setId_pohon(ext.getIdPohon());
+                det.setLevel_pohon(ext.getLevelPohon());
+                det.setNama_rencana_kinerja(ext.getNamaRencanaKinerja());
+                det.setTahun(ext.getTahun());
+                det.setStatus_rencana_kinerja(null); // external doesn't have this field
+
+                // ====== indikator dari external LANGSUNG ======
+                det.setIndikator(toExternalIndikator(ext.getIndikator()));
+
+                // ====== program, kegiatan, subkegiatan dari external ======
+                // Jika external API punya struktur ini, langsung set di sini.
+                // Jika belum ada, kamu bisa pastikan external API menambahkan fields:
+                //
+                // programs
+                // kegiatans
+                // subkegiatans
+                //
+                // (karena kamu bilang semuanya dari external)
+                //
+                // SEMENTARA:
+                det.setPrograms(null);
+                det.setKegiatans(null);
+                det.setSubkegiatans(null);
+
+                // ========== atasan mapping ==========
+                det.setRencana_kinerja_atasan(
+                        toAtasanDTO(atasanMap.get(ext.getIdRencanaKinerja()))
+                );
+
+                det.setPaguAnggaranTotal(null); // fill if external has pagu
+
+                detailList.add(det);
+            }
+
+            dto.setRencana_kinerja(detailList);
+
+            result.add(dto);
+        }
+
+        redisService.saveObject(cacheKey, result);
 
         return result;
     }
 
-    private RencanaKinerjaResDTO.RencanaKinerjaDetailDTO mapRencanaDetail(
-            DetailRekinPegawaiResDTO.RencanaKinerja rk,
-            Map<String, RencanaKinerjaAtasan> atasanByBawahan,
-            Map<String, Long> totalPagu,
-            Map<String, List<Object>> programKegiatanSubkegiatan) {
+    private List<Map<String, Object>> toExternalIndikator(
+            List<RekinOpdByTahunResDTO.Indikator> ext
+    ) {
+        if (ext == null) return null;
 
-        String idRekin = rk.getIdRencanaKinerja();
-        RencanaKinerjaAtasan a = atasanByBawahan.get(idRekin);
+        List<Map<String, Object>> list = new ArrayList<>();
 
-        Long paguBawahan = totalPagu.get(idRekin);
-        List<Object> items = programKegiatanSubkegiatan.getOrDefault(idRekin, List.of());
-
-        List<RencanaKinerjaResDTO.Program> programs = new ArrayList<>();
-        List<RencanaKinerjaResDTO.Kegiatan> kegiatans = new ArrayList<>();
-        List<RencanaKinerjaResDTO.SubKegiatan> subkegiatans = new ArrayList<>();
-
-        for (Object obj : items) {
-            if (obj instanceof DetailRekinPegawaiResDTO.Program p) programs.add(mapProgram(p));
-            else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) kegiatans.add(mapKegiatan(k));
-            else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) subkegiatans.add(mapSubKegiatan(s));
+        for (var e : ext) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id_indikator", e.getIdIndikator());
+            m.put("nama_indikator", e.getNamaIndikator());
+            m.put("targets", e.getTargets());
+            list.add(m);
         }
 
-        RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO atasanDTO = null;
-        if (a != null) {
-            var itemsAtasan = programKegiatanSubkegiatan.getOrDefault(a.getIdRencanaKinerja(), List.of());
-            List<RencanaKinerjaResDTO.Program> progsA = new ArrayList<>();
-            List<RencanaKinerjaResDTO.Kegiatan> kegsA = new ArrayList<>();
-            List<RencanaKinerjaResDTO.SubKegiatan> subsA = new ArrayList<>();
-            for (Object obj : itemsAtasan) {
-                if (obj instanceof DetailRekinPegawaiResDTO.Program p) progsA.add(mapProgram(p));
-                else if (obj instanceof DetailRekinPegawaiResDTO.Kegiatan k) kegsA.add(mapKegiatan(k));
-                else if (obj instanceof DetailRekinPegawaiResDTO.SubKegiatan s) subsA.add(mapSubKegiatan(s));
-            }
+        return list;
+    }
 
-            atasanDTO = RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
-                    .nama(a.getNama())
-                    .id_rencana_kinerja(a.getIdRencanaKinerja())
-                    .nama_rencana_kinerja(a.getNamaRencanaKinerja())
-                    .kode_program(a.getKodeProgram())
-                    .program(a.getProgram())
-                    .pagu_anggaran(a.getPaguAnggaran())
-                    .indikator(a.getIndikator())
-                    .target(a.getTarget())
-                    .satuan(a.getSatuan())
-                    .paguAnggaranTotal(totalPagu.get(a.getIdRencanaKinerja()))
-                    .programs(progsA)
-                    .kegiatans(kegsA)
-                    .subkegiatans(subsA)
-                    .build();
-        }
+    private RencanaKinerjaResDTO.VerifikatorDTO toVerifikatorDTO(Verifikator v) {
+        if (v == null) return null;
 
-        return RencanaKinerjaResDTO.RencanaKinerjaDetailDTO.builder()
-                .id(Optional.ofNullable(a).map(RencanaKinerjaAtasan::getId).orElse(null))
-                .id_rencana_kinerja(idRekin)
-                .id_pohon(Math.toIntExact(rk.getIdPohon()))
-                .nama_pohon(rk.getNamaPohon())
-                .level_pohon(rk.getLevelPohon())
-                .nama_rencana_kinerja(rk.getNamaRencanaKinerja())
-                .tahun(rk.getTahun())
-                .status_rencana_kinerja("-")
-                .paguAnggaranTotal(paguBawahan)
-                .rencana_kinerja_atasan(atasanDTO)
-                .programs(programs)
-                .kegiatans(kegiatans)
-                .subkegiatans(subkegiatans)
+        return RencanaKinerjaResDTO.VerifikatorDTO.builder()
+                .kode_opd(v.getKodeOpd())
+                .nama_opd(v.getNamaOpd())
+                .nip(Crypto.decrypt(v.getNip()))
+                .nama_atasan(v.getNamaAtasan())
+                .nip_atasan(v.getNipAtasan())
+                .level_pegawai(v.getLevelPegawai())
+                .status(v.getStatus().name())
+                .tahun_verifikasi(v.getTahunVerifikasi())
                 .build();
     }
 
+    private RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO toAtasanDTO(RencanaKinerjaAtasan a) {
+        if (a == null) return null;
 
-    private RencanaKinerjaResDTO.Program mapProgram(DetailRekinPegawaiResDTO.Program src) {
-        RencanaKinerjaResDTO.Program p = new RencanaKinerjaResDTO.Program();
-        p.setKodeProgram(src.getKodeProgram());
-        p.setNamaProgram(src.getNamaProgram());
-        p.setIndikator(src.getIndikator());
-        return p;
-    }
-
-    private RencanaKinerjaResDTO.Kegiatan mapKegiatan(DetailRekinPegawaiResDTO.Kegiatan src) {
-        RencanaKinerjaResDTO.Kegiatan k = new RencanaKinerjaResDTO.Kegiatan();
-        k.setKodeKegiatan(src.getKodeKegiatan());
-        k.setNamaKegiatan(src.getNamaKegiatan());
-        k.setIndikator(src.getIndikator());
-        return k;
-    }
-
-    private RencanaKinerjaResDTO.SubKegiatan mapSubKegiatan(DetailRekinPegawaiResDTO.SubKegiatan src) {
-        RencanaKinerjaResDTO.SubKegiatan s = new RencanaKinerjaResDTO.SubKegiatan();
-        s.setKodeSubkegiatan(src.getKodeSubkegiatan());
-        s.setNamaSubkegiatan(src.getNamaSubkegiatan());
-        s.setIndikator(src.getIndikator());
-        return s;
+        return RencanaKinerjaResDTO.RencanaKinerjaAtasanDTO.builder()
+                .nama(a.getNama())
+                .id_rencana_kinerja(a.getIdRencanaKinerja())
+                .nama_rencana_kinerja(a.getNamaRencanaKinerja())
+                .kode_program(a.getKodeProgram())
+                .program(a.getProgram())
+                .pagu_anggaran(a.getPaguAnggaran())
+                .indikator(a.getIndikator())
+                .target(a.getTarget())
+                .satuan(a.getSatuan())
+                .status_rencana_kinerja(a.getStatusRencanaKinerja())
+                .build();
     }
 }

@@ -30,5 +30,6 @@ public interface PerjanjianKinerjaService {
 
     void batalkan(String pkId);
 
+    // target perbaikan
     List<RencanaKinerjaResDTO> getAllRencanaKinerjaOpd(String sessionId, String kodeOpd, String tahun, String levelPegawai);
 }

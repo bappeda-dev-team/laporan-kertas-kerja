@@ -10,8 +10,8 @@ public class RekinOpdByTahunResDTO {
     private int code;
     private String status;
 
-    @JsonProperty("rencana_kinerja")
-    private List<RencanaKinerja> rencanaKinerja;
+    @JsonProperty("data")
+    private List<RencanaKinerja> data;
 
     @Data
     public static class RencanaKinerja {
@@ -22,9 +22,6 @@ public class RekinOpdByTahunResDTO {
         @JsonProperty("id_pohon")
         private Integer idPohon;
 
-        @JsonProperty("nama_pohon")
-        private String namaPohon;
-
         @JsonProperty("level_pohon")
         private Integer levelPohon;
 
@@ -33,33 +30,20 @@ public class RekinOpdByTahunResDTO {
 
         private String tahun;
 
-        @JsonProperty("status_rencana_kinerja")
-        private String statusRencanaKinerja;
-
-        @JsonProperty("operasional_daerah")
-        private OperasionalDaerah operasionalDaerah;
-
         @JsonProperty("pegawai_id")
         private String pegawaiId;
 
         @JsonProperty("nama_pegawai")
         private String namaPegawai;
 
+        @JsonProperty("kode_opd")
+        private String kodeOpd;
+
         private List<Indikator> indikator;
     }
 
     @Data
-    public static class OperasionalDaerah {
-        @JsonProperty("kode_opd")
-        private String kodeOpd;
-
-        @JsonProperty("nama_opd")
-        private String namaOpd;
-    }
-
-    @Data
     public static class Indikator {
-
         @JsonProperty("id_indikator")
         private String idIndikator;
 
@@ -70,9 +54,6 @@ public class RekinOpdByTahunResDTO {
         private String namaIndikator;
 
         private List<Target> targets;
-
-        @JsonProperty("manual_ik_exist")
-        private boolean manualIkExist;
     }
 
     @Data
@@ -85,5 +66,6 @@ public class RekinOpdByTahunResDTO {
 
         private String target;
         private String satuan;
+        private String tahun;
     }
 }
