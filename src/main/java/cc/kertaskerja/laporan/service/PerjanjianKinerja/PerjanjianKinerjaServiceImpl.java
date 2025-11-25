@@ -491,7 +491,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         if (externalList.isEmpty())
             return Collections.emptyList();
 
-        // ========== 2. INTERNAL: verifikator ==========
+        // ========== 2. INTERNAL: Verifikator ==========
         Map<String, Verifikator> verifikatorByNip =
                 verifikatorRepository.findAllByKodeOpdAndTahunVerifikasi(kodeOpd, tahunInt)
                         .stream()
@@ -501,7 +501,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                 (v1, v2) -> v1
                         ));
 
-        // ========== 3. INTERNAL: atasan ==========
+        // ========== 3. INTERNAL: Atasan ==========
         Map<String, RencanaKinerjaAtasan> atasanMap =
                 rekinAtasanRepository.findAllByKodeOpdAndTahun(kodeOpd, tahunInt)
                         .stream()
@@ -511,7 +511,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                                 (a1, a2) -> a1
                         ));
 
-        // ========== 4. Group external per pegawai ==========
+        // ========== 4. Group external by pegawai ==========
         Map<String, List<RekinOpdByTahunResDTO.RencanaKinerja>> grouped =
                 externalList.stream()
                         .collect(Collectors.groupingBy(RekinOpdByTahunResDTO.RencanaKinerja::getPegawaiId));
@@ -522,19 +522,18 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
         for (var entry : grouped.entrySet()) {
             String nip = entry.getKey();
             List<RekinOpdByTahunResDTO.RencanaKinerja> rkList = entry.getValue();
-
             RekinOpdByTahunResDTO.RencanaKinerja first = rkList.get(0);
 
             RencanaKinerjaResDTO dto = new RencanaKinerjaResDTO();
             dto.setKode_opd(first.getKodeOpd());
-            dto.setNama_opd(first.getKodeOpd()); // jika nama OPD tersedia dari external, isi disini
+            dto.setNama_opd(first.getKodeOpd()); // Bisa diambil dari external jika tersedia
             dto.setNip(first.getPegawaiId());
             dto.setNama(first.getNamaPegawai());
 
-            // set verifikator
+            // VERIFIKATOR
             dto.setVerifikator(toVerifikatorDTO(verifikatorByNip.get(nip)));
 
-            // detail list
+            // Detail list
             List<RencanaKinerjaResDTO.RencanaKinerjaDetailDTO> detailList = new ArrayList<>();
 
             for (var ext : rkList) {
@@ -545,43 +544,35 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 det.setLevel_pohon(ext.getLevelPohon());
                 det.setNama_rencana_kinerja(ext.getNamaRencanaKinerja());
                 det.setTahun(ext.getTahun());
-                det.setStatus_rencana_kinerja(null); // external doesn't have this field
 
-                // ====== indikator dari external LANGSUNG ======
+                // ====== indikator dari external ======
                 det.setIndikator(toExternalIndikator(ext.getIndikator()));
 
-                // ====== program, kegiatan, subkegiatan dari external ======
-                // Jika external API punya struktur ini, langsung set di sini.
-                // Jika belum ada, kamu bisa pastikan external API menambahkan fields:
-                //
-                // programs
-                // kegiatans
-                // subkegiatans
-                //
-                // (karena kamu bilang semuanya dari external)
-                //
-                // SEMENTARA:
-                det.setPrograms(null);
-                det.setKegiatans(null);
-                det.setSubkegiatans(null);
+                // ====== program dari external ======
+                det.setPrograms(toProgramDTO(ext.getProgram()));
 
-                // ========== atasan mapping ==========
+                // ====== kegiatan dari external ======
+                det.setKegiatans(toKegiatanDTO(ext.getKegiatan()));
+
+                // ====== subkegiatan dari external ======
+                det.setSubkegiatans(toSubDTO(ext.getSubKegiatan()));
+
+                // ====== atasan dari internal DB ======
                 det.setRencana_kinerja_atasan(
                         toAtasanDTO(atasanMap.get(ext.getIdRencanaKinerja()))
                 );
 
-                det.setPaguAnggaranTotal(null); // fill if external has pagu
+                // ====== PAGU ANGGARAN TOTAL FROM EXTERNAL ======
+                det.setPaguAnggaranTotal(ext.getPaguAnggaranTotal());
 
                 detailList.add(det);
             }
 
             dto.setRencana_kinerja(detailList);
-
             result.add(dto);
         }
 
         redisService.saveObject(cacheKey, result);
-
         return result;
     }
 
@@ -633,5 +624,59 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
                 .satuan(a.getSatuan())
                 .status_rencana_kinerja(a.getStatusRencanaKinerja())
                 .build();
+    }
+
+    private List<RencanaKinerjaResDTO.Program> toProgramDTO(
+            List<RekinOpdByTahunResDTO.Program> programs
+    ) {
+        if (programs == null) return null;
+
+        List<RencanaKinerjaResDTO.Program> out = new ArrayList<>();
+
+        for (var p : programs) {
+            RencanaKinerjaResDTO.Program dto = new RencanaKinerjaResDTO.Program();
+            dto.setKodeProgram(p.getKodeProgram());
+            dto.setNamaProgram(p.getNamaProgram());
+            dto.setIndikator(null); // external tidak punya
+            out.add(dto);
+        }
+
+        return out;
+    }
+
+    private List<RencanaKinerjaResDTO.Kegiatan> toKegiatanDTO(
+            List<RekinOpdByTahunResDTO.Kegiatan> kegiatan
+    ) {
+        if (kegiatan == null) return null;
+
+        List<RencanaKinerjaResDTO.Kegiatan> out = new ArrayList<>();
+
+        for (var k : kegiatan) {
+            RencanaKinerjaResDTO.Kegiatan dto = new RencanaKinerjaResDTO.Kegiatan();
+            dto.setKodeKegiatan(k.getKodeKegiatan());
+            dto.setNamaKegiatan(k.getNamaKegiatan());
+            dto.setIndikator(null);
+            out.add(dto);
+        }
+
+        return out;
+    }
+
+    private List<RencanaKinerjaResDTO.SubKegiatan> toSubDTO(
+            List<RekinOpdByTahunResDTO.SubKegiatan> subs
+    ) {
+        if (subs == null) return null;
+
+        List<RencanaKinerjaResDTO.SubKegiatan> out = new ArrayList<>();
+
+        for (var s : subs) {
+            RencanaKinerjaResDTO.SubKegiatan dto = new RencanaKinerjaResDTO.SubKegiatan();
+            dto.setKodeSubkegiatan(s.getKodeSubkegiatan());
+            dto.setNamaSubkegiatan(s.getNamaSubkegiatan());
+            dto.setIndikator(null);
+            out.add(dto);
+        }
+
+        return out;
     }
 }

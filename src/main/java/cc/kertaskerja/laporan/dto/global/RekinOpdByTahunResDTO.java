@@ -40,6 +40,16 @@ public class RekinOpdByTahunResDTO {
         private String kodeOpd;
 
         private List<Indikator> indikator;
+
+        private List<Program> program;
+
+        private List<Kegiatan> kegiatan;
+
+        @JsonProperty("sub_kegiatan")
+        private List<SubKegiatan> subKegiatan;
+
+        @JsonProperty("pagu_anggaran_total")
+        private Long paguAnggaranTotal;
     }
 
     @Data
@@ -67,5 +77,32 @@ public class RekinOpdByTahunResDTO {
         private String target;
         private String satuan;
         private String tahun;
+    }
+
+    @Data
+    public static class Program {
+        @JsonProperty("kode_program")
+        private String kodeProgram;
+
+        @JsonProperty("nama_program")
+        private String namaProgram;
+    }
+
+    @Data
+    public static class Kegiatan {
+        @JsonProperty("kode_kegiatan")
+        private String kodeKegiatan;
+
+        @JsonProperty("nama_kegiatan")
+        private String namaKegiatan;
+    }
+
+    @Data
+    public static class SubKegiatan {
+        @JsonProperty("kode_subkegiatan")
+        private String kodeSubkegiatan;
+
+        @JsonProperty("nama_subkegiatan")
+        private String namaSubkegiatan;
     }
 }
