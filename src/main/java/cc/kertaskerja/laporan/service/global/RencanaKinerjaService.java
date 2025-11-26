@@ -46,20 +46,20 @@ public class RencanaKinerjaService {
     }
 
     public RekinOpdByTahunResDTO findAllRekinOpdByTahun(String sessionId, String kodeOpd, String tahun) {
-        String cacheKey = "rekin:opd:%s:%s".formatted(kodeOpd, tahun);
+//        String cacheKey = "rekin:opd:%s:%s".formatted(kodeOpd, tahun);
         String url = String.format("%s/cascading_opd/multi_rekin_detail_by_opd_and_tahun/%s/%s", rekinBaseUrl, kodeOpd, tahun);
 
         // cek redis
-        String cachedJson = redisService.getRekinResponse(cacheKey);
-        if (cachedJson != null) {
-            try {
-                RekinOpdByTahunResDTO cached = objectMapper.readValue(cachedJson, RekinOpdByTahunResDTO.class);
-                log.info("✅ [CACHE HIT] findAllRekinOpdByTahun -> {}", cacheKey);
-                return cached;
-            } catch (Exception e) {
-                log.warn("⚠️ Gagal parse cache rekin OPD {}", cacheKey, e);
-            }
-        }
+//        String cachedJson = redisService.getRekinResponse(cacheKey);
+//        if (cachedJson != null) {
+//            try {
+//                RekinOpdByTahunResDTO cached = objectMapper.readValue(cachedJson, RekinOpdByTahunResDTO.class);
+//                log.info("✅ [CACHE HIT] findAllRekinOpdByTahun -> {}", cacheKey);
+//                return cached;
+//            } catch (Exception e) {
+//                log.warn("⚠️ Gagal parse cache rekin OPD {}", cacheKey, e);
+//            }
+//        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Session-Id", sessionId);
@@ -69,15 +69,15 @@ public class RencanaKinerjaService {
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        long start = System.currentTimeMillis();
+//        long start = System.currentTimeMillis();
         ResponseEntity<RekinOpdByTahunResDTO> response = restTemplate.exchange(
                 url,
                 HttpMethod.GET,
                 entity,
                 RekinOpdByTahunResDTO.class
         );
-        long duration = System.currentTimeMillis() - start;
-        log.info("🌐 [API FETCH] findAllRekinOpdByTahun ({} ms)", duration);
+//        long duration = System.currentTimeMillis() - start;
+//        log.info("🌐 [API FETCH] findAllRekinOpdByTahun ({} ms)", duration);
 
         // hasil
         RekinOpdByTahunResDTO body = response.getBody();
@@ -87,12 +87,12 @@ public class RencanaKinerjaService {
         }
 
         // simpan ke redis
-        try {
-            redisService.saveRekinResponse(cacheKey, objectMapper.writeValueAsString(body));
-            log.info("💾 [CACHE STORE] rekin OPD -> {}", cacheKey);
-        } catch (Exception e) {
-            log.error("❌ Gagal simpan cache rekin OPD {}", cacheKey, e);
-        }
+//        try {
+//            redisService.saveRekinResponse(cacheKey, objectMapper.writeValueAsString(body));
+//            log.info("💾 [CACHE STORE] rekin OPD -> {}", cacheKey);
+//        } catch (Exception e) {
+//            log.error("❌ Gagal simpan cache rekin OPD {}", cacheKey, e);
+//        }
 
         return body;
     }

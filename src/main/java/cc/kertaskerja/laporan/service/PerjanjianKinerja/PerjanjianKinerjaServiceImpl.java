@@ -470,13 +470,13 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
             String levelPegawai
     ) {
 
-        String cacheKey = "rencanaKinerjaOpd:%s:%s".formatted(kodeOpd, tahun);
+//        String cacheKey = "rencanaKinerjaOpd:%s:%s".formatted(kodeOpd, tahun);
 
         // cek cache
-        List<RencanaKinerjaResDTO> cached = redisService.getList(cacheKey, RencanaKinerjaResDTO.class);
-        if (cached != null && !cached.isEmpty()) {
-            return cached;
-        }
+//        List<RencanaKinerjaResDTO> cached = redisService.getList(cacheKey, RencanaKinerjaResDTO.class);
+//        if (cached != null && !cached.isEmpty()) {
+//            return cached;
+//        }
 
         int tahunInt = Integer.parseInt(tahun);
 
@@ -572,7 +572,7 @@ public class PerjanjianKinerjaServiceImpl implements PerjanjianKinerjaService {
             result.add(dto);
         }
 
-        redisService.saveObject(cacheKey, result);
+//        redisService.saveObject(cacheKey, result);
         return result;
     }
 
